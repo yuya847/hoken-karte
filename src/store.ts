@@ -1,4 +1,5 @@
 import { DISEASES, SETS, initialPatients, rxFromDrug, testFromCode, today, uid } from './data'
+import { parseVitals } from './vitals'
 import type { Disease, Draft, Encounter, Patient, RightMode, RxItem, SessionMetric, TestOrder, Vitals } from './types'
 
 export type State = {
@@ -13,7 +14,6 @@ export type State = {
 export type Action =
   | { type: 'open'; patientId: string }
   | { type: 'op' }
-  | { type: 'vitals'; patch: Vitals }
   | { type: 'text'; text: string }
   | { type: 'insertText'; text: string }
   | { type: 'do'; encounterId?: string }
@@ -104,8 +104,6 @@ export function reducer(s: State, a: Action): State {
       return openPatient(s, a.patientId)
     case 'op':
       return s.session ? { ...s, session: { ...s.session, ops: s.session.ops + 1 } } : s
-    case 'vitals':
-      return mapDraft(s, (d) => ({ ...d, vitals: { ...d.vitals, ...a.patch } }))
     case 'text':
       return mapDraft(s, (d) => ({ ...d, text: a.text }))
     case 'insertText':
@@ -190,7 +188,7 @@ export function reducer(s: State, a: Action): State {
         id: uid('enc'),
         date: today(),
         kind: p.encounters.length === 0 ? '初診' : '再診',
-        vitals: d.vitals,
+        vitals: parseVitals(d.text),
         text: d.text,
         rx: d.rx,
         tests: d.tests,

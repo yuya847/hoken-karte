@@ -3,6 +3,7 @@ import { age } from './data'
 import { vitalsLine } from './LeftPane'
 import type { Action } from './store'
 import type { Draft, Patient } from './types'
+import { parseVitals } from './vitals'
 
 export function LetterEditor({ patient, draft, dispatch }: { patient: Patient; draft: Draft; dispatch: (a: Action) => void }) {
   const toRef = useRef<HTMLInputElement>(null)
@@ -10,7 +11,8 @@ export function LetterEditor({ patient, draft, dispatch }: { patient: Patient; d
   const letter = draft.letter
   const latest = [...patient.encounters].sort((a, b) => b.date.localeCompare(a.date))[0]
   const rx = draft.rx.length ? draft.rx : (latest?.rx ?? [])
-  const vitals = Object.keys(draft.vitals).length ? draft.vitals : (latest?.vitals ?? {})
+  const now = parseVitals(draft.text)
+  const vitals = Object.keys(now).length ? now : (latest?.vitals ?? {})
   const diseases = patient.diseases.filter((d) => d.status === '継続')
 
   const set = (patch: Partial<NonNullable<Draft['letter']>>) => dispatch({ type: 'letter', patch })

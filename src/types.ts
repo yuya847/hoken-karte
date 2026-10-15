@@ -90,4 +90,5 @@ export type SessionMetric = {
 export type RightMode =
   | { kind: 'chart' }
   | { kind: 'letter' }
+  | { kind: 'images' }
   | { kind: 'edit-past'; encounterId: string }

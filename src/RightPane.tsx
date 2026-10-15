@@ -1,88 +1,79 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { DISEASES, DRUGS, TESTS } from './data'
 import { vitalsLine } from './LeftPane'
+import { OrderSearch, type SearchItem } from './OrderSearch'
 import type { Action } from './store'
-import type { Draft, Encounter, Patient, Vitals } from './types'
+import type { Draft, Encounter, Patient } from './types'
+import { parseVitals } from './vitals'
 
-const VITAL_FIELDS: { key: keyof Vitals; label: string; w: string; step?: string }[] = [
-  { key: 'sbp', label: '収縮期', w: 'w-16' },
-  { key: 'dbp', label: '拡張期', w: 'w-16' },
-  { key: 'hr', label: '脈拍', w: 'w-16' },
-  { key: 'bt', label: '体温', w: 'w-16', step: '0.1' },
-  { key: 'spo2', label: 'SpO2', w: 'w-16' },
-  { key: 'bw', label: '体重', w: 'w-20', step: '0.1' },
-]
+export type FocusReq = { target: 'rx' | 'test' | 'disease'; n: number } | null
 
-function VitalsRow({ value, onChange, firstRef }: { value: Vitals; onChange: (p: Vitals) => void; firstRef?: React.Ref<HTMLInputElement> }) {
-  return (
-    <div className="flex flex-wrap items-end gap-2">
-      {VITAL_FIELDS.map((f, i) => (
-        <label key={f.key} className="flex flex-col text-xs text-slate-500">
-          {f.label}
-          <input
-            ref={i === 0 ? firstRef : undefined}
-            inputMode="decimal"
-            value={value[f.key] ?? ''}
-            onChange={(e) => {
-              const n = e.target.value === '' ? undefined : Number(e.target.value)
-              onChange({ [f.key]: Number.isNaN(n) ? value[f.key] : n })
-            }}
-            className={`${f.w} rounded border border-slate-300 px-2 py-1 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100`}
-          />
-        </label>
-      ))}
-    </div>
-  )
-}
+const DRUG_ITEMS: SearchItem[] = DRUGS.map((d) => ({ id: d.id, label: d.name, sub: `${d.dose}${d.unit} ${d.usage} ${d.days}日`, keys: `${d.kana} ${d.alias}` }))
+const TEST_ITEMS: SearchItem[] = TESTS.map((t) => ({ id: t.code, label: t.name, keys: `${t.kana} ${t.alias}` }))
+const DISEASE_ITEMS: SearchItem[] = DISEASES.map((x) => ({ id: x.name, label: x.name, keys: `${x.kana} ${x.alias}` }))
+
+const VITALS_HINT = 'BP 128/78　HR 72　BT 36.5　SpO2 98　BW 62.4 のように書くとバイタルとして読み取ります'
 
 type ChartProps = {
   patient: Patient
   draft: Draft
   dispatch: (a: Action) => void
-  openPalette: () => void
+  focusReq: FocusReq
 }
 
-export function ChartEditor({ patient, draft, dispatch, openPalette }: ChartProps) {
-  const firstRef = useRef<HTMLInputElement>(null)
-  useEffect(() => firstRef.current?.focus(), [])
+export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) {
+  const textRef = useRef<HTMLTextAreaElement>(null)
+  const rxRef = useRef<HTMLInputElement>(null)
+  const testRef = useRef<HTMLInputElement>(null)
+  const diseaseRef = useRef<HTMLInputElement>(null)
+  useEffect(() => textRef.current?.focus(), [])
+  useEffect(() => {
+    if (!focusReq) return
+    const el = { rx: rxRef, test: testRef, disease: diseaseRef }[focusReq.target].current
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el?.focus()
+  }, [focusReq])
+
   const active = patient.diseases.filter((d) => d.status === '継続')
+  const detected = useMemo(() => vitalsLine(parseVitals(draft.text)), [draft.text])
 
   return (
     <div className="flex h-full flex-col">
-      <section className="space-y-2 border-b border-slate-200 bg-white px-4 py-3">
+      <section className="space-y-1.5 border-b border-slate-200 bg-white px-4 py-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">今回の記載</h2>
-          <div className="flex gap-1.5 text-xs">
-            <button onClick={() => dispatch({ type: 'copyLastText' })} className="rounded border border-slate-300 px-2 py-1 hover:bg-slate-50">
-              前回記載コピー <kbd className="text-slate-400">⌘⇧D</kbd>
-            </button>
-          </div>
+          <button onClick={() => dispatch({ type: 'copyLastText' })} className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
+            前回記載コピー <kbd className="text-slate-400">⌘⇧D</kbd>
+          </button>
         </div>
-        <VitalsRow value={draft.vitals} onChange={(patch) => dispatch({ type: 'vitals', patch })} firstRef={firstRef} />
         <textarea
+          ref={textRef}
           value={draft.text}
           onChange={(e) => dispatch({ type: 'text', text: e.target.value })}
-          placeholder="自由記載（主訴・所見・評価・方針）"
-          className="h-40 w-full resize-y rounded border border-slate-300 px-3 py-2 leading-relaxed outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          placeholder={`自由記載（主訴・所見・評価・方針）\n${VITALS_HINT}`}
+          className="h-48 w-full resize-y rounded border border-slate-300 px-3 py-2 leading-relaxed outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
         />
+        <div className="font-mono text-xs text-slate-500">{detected ? `読み取ったバイタル：${detected}` : ' '}</div>
       </section>
 
-      <section className="flex-1 space-y-3 overflow-y-auto bg-white px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold">オーダー</h2>
-          <div className="flex gap-1.5 text-xs">
-            <button onClick={() => dispatch({ type: 'do' })} className="rounded bg-emerald-600 px-2.5 py-1 font-medium text-white hover:bg-emerald-700">
+      <section className="flex-1 space-y-4 overflow-y-auto bg-white px-4 py-3">
+        <div>
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-sm font-semibold text-emerald-700">処方（院外）</span>
+            <kbd className="text-xs text-slate-400">⌘P</kbd>
+            <span className="flex-1" />
+            <button onClick={() => dispatch({ type: 'do' })} className="rounded bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700">
               Do処方 <kbd className="opacity-70">⌘D</kbd>
             </button>
-            <button onClick={openPalette} className="rounded border border-slate-300 px-2.5 py-1 hover:bg-slate-50">
-              薬・検査・病名を追加 <kbd className="text-slate-400">⌘K</kbd>
-            </button>
           </div>
-        </div>
-
-        <div>
-          <div className="mb-1 text-xs font-medium text-emerald-700">処方（院外）</div>
-          {draft.rx.length === 0 && <div className="rounded border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400">処方なし</div>}
-          <div className="space-y-1">
+          <OrderSearch
+            items={DRUG_ITEMS}
+            tone="emerald"
+            inputRef={rxRef}
+            placeholder="処方を検索（例：あむろ、amlo、ロキソ）→ Enterで追加"
+            onPick={(id) => dispatch({ type: 'addRx', drugId: id })}
+          />
+          <div className="mt-1.5 space-y-1">
             {draft.rx.map((r) => (
               <div key={r.id} className="flex items-center gap-2 rounded bg-emerald-50 px-2 py-1.5 text-sm">
                 <span className="flex-1 truncate">{r.name}</span>
@@ -112,9 +103,15 @@ export function ChartEditor({ patient, draft, dispatch, openPalette }: ChartProp
         </div>
 
         <div>
-          <div className="mb-1 text-xs font-medium text-violet-700">検査</div>
-          {draft.tests.length === 0 && <div className="rounded border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400">検査なし</div>}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="mb-1 text-sm font-semibold text-violet-700">検査</div>
+          <OrderSearch
+            items={TEST_ITEMS}
+            tone="violet"
+            inputRef={testRef}
+            placeholder="検査を検索（例：a1c、けっさん、ecg）"
+            onPick={(code) => dispatch({ type: 'addTest', code })}
+          />
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
             {draft.tests.map((t) => (
               <span key={t.id} className="flex items-center gap-1 rounded bg-violet-50 px-2 py-1 text-sm">
                 {t.name}
@@ -127,8 +124,15 @@ export function ChartEditor({ patient, draft, dispatch, openPalette }: ChartProp
         </div>
 
         <div>
-          <div className="mb-1 text-xs font-medium text-blue-700">病名</div>
-          <div className="space-y-1">
+          <div className="mb-1 text-sm font-semibold text-blue-700">病名</div>
+          <OrderSearch
+            items={DISEASE_ITEMS}
+            tone="blue"
+            inputRef={diseaseRef}
+            placeholder="病名を検索（例：こうけつ、dm）"
+            onPick={(name) => dispatch({ type: 'addDisease', name })}
+          />
+          <div className="mt-1.5 space-y-1">
             {patient.diseases.map((d) => (
               <div key={d.id} className={`flex items-center gap-2 rounded px-2 py-1 text-sm ${d.status === '継続' ? 'bg-blue-50' : 'bg-slate-50 text-slate-400'}`}>
                 <label className="flex items-center gap-1 text-xs">
@@ -152,7 +156,7 @@ export function ChartEditor({ patient, draft, dispatch, openPalette }: ChartProp
                 </select>
               </div>
             ))}
-            {active.length === 0 && <div className="rounded border border-dashed border-slate-300 px-3 py-2 text-sm text-slate-400">継続中の病名なし</div>}
+            {active.length === 0 && <div className="text-sm text-slate-400">継続中の病名なし</div>}
           </div>
         </div>
       </section>
@@ -162,9 +166,10 @@ export function ChartEditor({ patient, draft, dispatch, openPalette }: ChartProp
 
 export function PastEditor({ encounter, dispatch }: { encounter: Encounter; dispatch: (a: Action) => void }) {
   const [text, setText] = useState(encounter.text)
-  const [vitals, setVitals] = useState<Vitals>(encounter.vitals)
   const ref = useRef<HTMLTextAreaElement>(null)
   useEffect(() => ref.current?.focus(), [])
+  // 記載にバイタルが書かれていればそれを優先し、なければ元の値を残す
+  const vitals = { ...encounter.vitals, ...parseVitals(text) }
 
   return (
     <div className="flex h-full flex-col gap-3 bg-white px-4 py-3">
@@ -174,7 +179,7 @@ export function PastEditor({ encounter, dispatch }: { encounter: Encounter; disp
         </h2>
         <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-800">保存すると v{encounter.version + 1}（元の版は履歴に残ります）</span>
       </div>
-      <VitalsRow value={vitals} onChange={(p) => setVitals((v) => ({ ...v, ...p }))} />
+      {vitalsLine(vitals) && <div className="font-mono text-xs text-slate-500">バイタル：{vitalsLine(vitals)}</div>}
       <textarea
         ref={ref}
         value={text}

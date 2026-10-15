@@ -3,7 +3,9 @@ import { CommandPalette, type Command } from './CommandPalette'
 import { DISEASES, DRUGS, SETS, TESTS, age } from './data'
 import { LeftPane } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
-import { ChartEditor, PastEditor } from './RightPane'
+import { ImageViewer } from './ImageViewer'
+import { OrderRail, type RailId } from './OrderRail'
+import { ChartEditor, PastEditor, type FocusReq } from './RightPane'
 import { emptyDraft, loadState, reducer, saveState, type Action, type State } from './store'
 import type { Patient, QueueStatus } from './types'
 
@@ -25,6 +27,7 @@ export default function App() {
   const [metricsOpen, setMetricsOpen] = useState(false)
   const [saveOk, setSaveOk] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
+  const [focusReq, setFocusReq] = useState<FocusReq>(null)
   const [, tick] = useState(0)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -70,6 +73,18 @@ export default function App() {
     dispatch({ type: 'mode', mode: { kind: 'letter' } })
   }
 
+  const focusOrder = (target: 'rx' | 'test' | 'disease') => {
+    dispatch({ type: 'mode', mode: { kind: 'chart' } })
+    setFocusReq((r) => ({ target, n: (r?.n ?? 0) + 1 }))
+  }
+
+  const selectRail = (id: RailId) => {
+    const s = stateRef.current
+    if (id === 'letter') return toggleLetter()
+    if (id === 'image') return dispatch({ type: 'mode', mode: s.mode.kind === 'images' ? { kind: 'chart' } : { kind: 'images' } })
+    focusOrder(id)
+  }
+
   // ショートカットとクリックを「操作数」として数える（文字入力は数えない）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -84,7 +99,7 @@ export default function App() {
       }
       if (e.key === 'Escape') {
         setMetricsOpen(false)
-        if (s.mode.kind === 'edit-past') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
+        if (s.mode.kind === 'edit-past' || s.mode.kind === 'images') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
         return
       }
       if (mod && k === 'k') return hit(() => setPalette((v) => !v))
@@ -94,6 +109,7 @@ export default function App() {
       if (mod && e.shiftKey && k === 'd') return hit(() => dispatch({ type: 'copyLastText' }))
       if (mod && k === 'd') return hit(() => dispatch({ type: 'do' }))
       if (mod && k === 'l') return hit(toggleLetter)
+      if (mod && k === 'p') return hit(() => focusOrder('rx'))
       if (mod && e.key === 'Enter') return hit(confirm)
     }
     const onClick = () => {
@@ -182,17 +198,6 @@ export default function App() {
             </span>
             <span className="text-sm text-slate-500">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
             <span className="flex-1" />
-            <div className="flex overflow-hidden rounded border border-slate-300 text-sm">
-              <button
-                onClick={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })}
-                className={`px-3 py-1 ${mode.kind !== 'letter' ? 'bg-slate-800 text-white' : ''}`}
-              >
-                カルテ
-              </button>
-              <button onClick={toggleLetter} className={`px-3 py-1 ${mode.kind === 'letter' ? 'bg-slate-800 text-white' : ''}`}>
-                紹介状{draft.letter && ' ●'}
-              </button>
-            </div>
             <span className={`text-xs ${saveOk ? 'text-slate-500' : 'font-bold text-red-600'}`}>
               {saveOk ? (draft.savedAt ? `下書き保存 ${draft.savedAt}` : '下書きなし') : '下書きを保存できません'}
             </span>
@@ -200,7 +205,7 @@ export default function App() {
               確定して会計へ <kbd className="opacity-70">⌘Enter</kbd>
             </button>
           </div>
-          <main className="grid min-h-0 flex-1 grid-cols-[2fr_3fr]">
+          <main className="grid min-h-0 flex-1 grid-cols-[2fr_3fr_auto]">
             <div className="no-print min-h-0 border-r border-slate-200 bg-slate-50">
               <LeftPane
                 patient={patient}
@@ -217,12 +222,15 @@ export default function App() {
             <div className="min-h-0">
               {mode.kind === 'letter' ? (
                 <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
+              ) : mode.kind === 'images' ? (
+                <ImageViewer key={patient.id} patientName={patient.name} />
               ) : editing ? (
                 <PastEditor key={editing.id} encounter={editing} dispatch={dispatch} />
               ) : (
-                <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} openPalette={() => setPalette(true)} />
+                <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} focusReq={focusReq} />
               )}
             </div>
+            <OrderRail active={mode.kind === 'letter' ? 'letter' : mode.kind === 'images' ? 'image' : null} onSelect={selectRail} />
           </main>
         </>
       ) : (
@@ -231,6 +239,7 @@ export default function App() {
 
       <footer className="no-print flex gap-4 border-t border-slate-200 bg-white px-4 py-1.5 text-xs text-slate-500">
         <span>⌘K 検索・追加</span>
+        <span>⌘P 処方検索</span>
         <span>⌘D Do処方</span>
         <span>⌘⇧D 前回記載コピー</span>
         <span>⌘L 紹介状</span>
