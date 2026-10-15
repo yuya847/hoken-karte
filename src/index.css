@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+  background: #f4f5f7;
+  color: #1f2328;
+  font-size: 14px;
+}
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+}
