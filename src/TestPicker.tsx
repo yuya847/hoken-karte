@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toHira } from './CommandPalette'
+import { Icon } from './Icon'
 import { SETS, TESTS, TEST_GROUPS } from './data'
 import type { Action } from './store'
 import type { Draft, Patient } from './types'
@@ -23,59 +24,70 @@ export function TestPicker({ patient, draft, dispatch }: { patient: Patient; dra
   const back = () => dispatch({ type: 'mode', mode: { kind: 'chart' } })
 
   return (
-    <div className="flex h-full flex-col bg-white">
-      <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-2">
-        <h2 className="font-semibold text-violet-700">検査オーダー</h2>
-        <input
-          ref={ref}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.nativeEvent.isComposing) return
-            if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey && visible[0]) {
-              e.preventDefault()
-              toggle(visible[0].code)
-              setQ('')
-            }
-          }}
-          placeholder="絞り込み（例：a1c、かん）Enterで先頭を選択"
-          className="w-64 rounded border border-slate-300 px-2 py-1 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-        />
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-3 px-6 pt-5 pb-3">
+        <button onClick={back} className="icon-btn" title="戻る（Esc）">
+          <Icon name="arrow_back" />
+        </button>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-lab-ctr text-lab">
+          <Icon name="biotech" size={20} />
+        </span>
+        <h2 className="text-[22px]">検査オーダー</h2>
         <span className="flex-1" />
-        <button onClick={back} className="rounded bg-violet-600 px-3 py-1 text-sm font-medium text-white hover:bg-violet-700">
-          完了 <kbd className="opacity-70">Esc</kbd>
+        <button onClick={back} className="btn btn-filled">
+          <Icon name="check" size={20} />
+          完了
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 px-4 py-2 text-xs">
-        {last && (
-          <button
-            onClick={() => last.tests.forEach((t) => !selected.has(t.code) && toggle(t.code))}
-            className="rounded border border-violet-300 bg-violet-50 px-2 py-1 text-violet-800 hover:bg-violet-100"
-          >
-            前回と同じ（{last.date}：{last.tests.map((t) => t.name).join('、')}）
-          </button>
-        )}
-        {testSets.map((x) => (
-          <button key={x.id} onClick={() => dispatch({ type: 'applySet', setId: x.id })} className="rounded border border-slate-300 px-2 py-1 hover:bg-slate-50">
-            {x.name}
-          </button>
-        ))}
-        <span className="flex-1" />
-        {selected.size > 0 && (
-          <button onClick={() => dispatch({ type: 'setTests', codes: [] })} className="px-2 py-1 text-slate-500 hover:text-red-600">
-            選択をすべて解除
-          </button>
-        )}
+      <div className="px-6">
+        <div className="relative">
+          <Icon name="filter_list" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-2" />
+          <input
+            ref={ref}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
+              if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey && visible[0]) {
+                e.preventDefault()
+                toggle(visible[0].code)
+                setQ('')
+              }
+            }}
+            placeholder="絞り込み（例：a1c、かん）Enterで先頭を選択"
+            className="h-11 w-full rounded-full bg-surface-1 pr-4 pl-10 text-sm outline-none placeholder:text-ink-2/70 hover:bg-surface-2 focus:bg-white focus:shadow-md"
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {last && (
+            <button onClick={() => last.tests.forEach((t) => !selected.has(t.code) && toggle(t.code))} className="chip">
+              <Icon name="history" size={18} />
+              前回と同じ（{last.date}：{last.tests.map((t) => t.name).join('、')}）
+            </button>
+          )}
+          {testSets.map((x) => (
+            <button key={x.id} onClick={() => dispatch({ type: 'applySet', setId: x.id })} className="chip">
+              <Icon name="playlist_add" size={18} />
+              {x.name}
+            </button>
+          ))}
+          <span className="flex-1" />
+          {selected.size > 0 && (
+            <button onClick={() => dispatch({ type: 'setTests', codes: [] })} className="btn btn-sm btn-danger">
+              すべて解除
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="grid flex-1 auto-rows-min grid-cols-3 gap-x-4 gap-y-3 overflow-y-auto px-4 py-3">
+      <div className="grid flex-1 auto-rows-min grid-cols-3 gap-x-5 gap-y-4 overflow-y-auto px-6 py-4">
         {TEST_GROUPS.map((g) => {
           const items = visible.filter((t) => t.group === g)
           if (items.length === 0) return null
           return (
             <div key={g}>
-              <div className="mb-1 border-b border-slate-200 pb-0.5 text-xs font-semibold text-slate-500">{g}</div>
+              <div className="label mb-1.5 px-1">{g}</div>
               <div className="space-y-1">
                 {items.map((t) => {
                   const on = selected.has(t.code)
@@ -83,11 +95,11 @@ export function TestPicker({ patient, draft, dispatch }: { patient: Patient; dra
                     <button
                       key={t.code}
                       onClick={() => toggle(t.code)}
-                      className={`flex w-full items-center gap-2 rounded border px-2 py-1.5 text-left text-sm ${
-                        on ? 'border-violet-500 bg-violet-600 text-white' : 'border-slate-200 hover:border-violet-300 hover:bg-violet-50'
+                      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                        on ? 'bg-lab-ctr font-medium text-lab' : 'hover:bg-surface-1'
                       }`}
                     >
-                      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border text-[10px] ${on ? 'border-white' : 'border-slate-400'}`}>{on && '✓'}</span>
+                      <Icon name={on ? 'check_box' : 'check_box_outline_blank'} fill={on} size={20} className={on ? 'text-lab' : 'text-ink-2'} />
                       {t.name}
                     </button>
                   )
@@ -96,16 +108,16 @@ export function TestPicker({ patient, draft, dispatch }: { patient: Patient; dra
             </div>
           )
         })}
-        {visible.length === 0 && <div className="col-span-3 py-8 text-center text-slate-400">該当する検査がありません</div>}
+        {visible.length === 0 && <div className="col-span-3 py-8 text-center text-ink-2">該当する検査がありません</div>}
       </div>
 
-      <div className="flex min-h-11 flex-wrap items-center gap-1.5 border-t border-slate-200 bg-violet-50/50 px-4 py-2 text-sm">
-        <span className="text-xs text-slate-500">選択中 {selected.size}件</span>
+      <div className="flex min-h-14 flex-wrap items-center gap-1.5 border-t border-surface-2 px-6 py-2.5 text-sm">
+        <span className="label mr-1">選択中 {selected.size}件</span>
         {draft.tests.map((t) => (
-          <span key={t.id} className="flex items-center gap-1 rounded bg-violet-100 px-2 py-0.5">
+          <span key={t.id} className="inline-flex h-8 items-center gap-1 rounded-lg bg-lab-ctr pr-1 pl-3 text-[13px] font-medium text-lab">
             {t.name}
-            <button onClick={() => toggle(t.code)} className="text-slate-400 hover:text-red-600" aria-label="解除">
-              ×
+            <button onClick={() => toggle(t.code)} className="icon-btn h-6 w-6 text-lab" aria-label="解除">
+              <Icon name="close" size={16} />
             </button>
           </span>
         ))}

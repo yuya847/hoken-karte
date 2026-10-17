@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Icon } from './Icon'
 
 type Img = { id: string; name: string; url: string }
 
@@ -22,7 +23,7 @@ export function ImageViewer({ patientName }: { patientName: string }) {
 
   return (
     <div
-      className={`flex h-full flex-col bg-white ${drag ? 'ring-4 ring-inset ring-cyan-300' : ''}`}
+      className={`flex h-full flex-col ${drag ? 'ring-4 ring-inset ring-primary' : ''}`}
       onDragOver={(e) => {
         e.preventDefault()
         setDrag(true)
@@ -34,29 +35,36 @@ export function ImageViewer({ patientName }: { patientName: string }) {
         add(e.dataTransfer.files)
       }}
     >
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2">
-        <h2 className="font-semibold">画像の参照 <span className="text-sm font-normal text-slate-500">{patientName}</span></h2>
-        <label className="cursor-pointer rounded border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-50">
+      <div className="flex items-center gap-3 px-6 pt-5 pb-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e0f7fa] text-[#00696f]">
+          <Icon name="radiology" size={20} />
+        </span>
+        <h2 className="flex-1 text-[22px]">
+          画像の参照 <span className="text-sm text-ink-2">{patientName}</span>
+        </h2>
+        <label className="btn btn-sm btn-tonal">
+          <Icon name="upload_file" size={18} />
           画像を開く
           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => add(e.target.files)} />
         </label>
       </div>
-      <div className="flex min-h-0 flex-1">
-        <div className="w-32 shrink-0 space-y-2 overflow-y-auto border-r border-slate-200 p-2">
+      <div className="mx-3 mb-3 flex min-h-0 flex-1 overflow-hidden rounded-2xl">
+        <div className="w-32 shrink-0 space-y-2 overflow-y-auto bg-surface-1 p-2">
           {imgs.map((i) => (
-            <button key={i.id} onClick={() => setSel(i.id)} className={`block w-full overflow-hidden rounded border ${sel === i.id ? 'border-cyan-500 ring-2 ring-cyan-200' : 'border-slate-200'}`}>
+            <button key={i.id} onClick={() => setSel(i.id)} className={`block w-full overflow-hidden rounded-xl bg-white ${sel === i.id ? 'ring-2 ring-primary' : ''}`}>
               <img src={i.url} alt={i.name} className="h-20 w-full bg-black object-contain" />
-              <div className="truncate px-1 text-[10px] text-slate-500">{i.name}</div>
+              <div className="truncate px-1.5 py-0.5 text-[10px] text-ink-2">{i.name}</div>
             </button>
           ))}
         </div>
-        <div className="flex flex-1 items-center justify-center bg-slate-900">
+        <div className="flex flex-1 items-center justify-center bg-[#1f1f1f]">
           {current ? (
             <img src={current.url} alt={current.name} className="max-h-full max-w-full object-contain" />
           ) : (
-            <div className="text-center text-sm text-slate-400">
+            <div className="flex flex-col items-center gap-2 text-center text-sm text-[#c4c7c5]">
+              <Icon name="add_photo_alternate" size={48} />
               画像ファイルをここにドロップ、または「画像を開く」
-              <div className="mt-1 text-xs text-slate-500">試作のため、この端末で表示するだけで保存はしません</div>
+              <div className="text-xs text-[#8e918f]">試作のため、この端末で表示するだけで保存はしません</div>
             </div>
           )}
         </div>

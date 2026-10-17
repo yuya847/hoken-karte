@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from './Icon'
 import type { Encounter, Patient, Vitals } from './types'
 
 export type Filter = '全て' | '記載' | '処方' | '検査' | '文書'
@@ -41,36 +42,40 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
 
   return (
     <div className="flex h-full flex-col">
-      <div className="space-y-2 border-b border-slate-200 bg-white px-4 py-3">
+      <div className="space-y-3 px-5 pt-4 pb-3">
         {patient.allergies.length > 0 && (
-          <div className="rounded-md bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700">アレルギー：{patient.allergies.join('、')}</div>
+          <div className="flex items-center gap-2 rounded-xl bg-error-ctr px-3 py-2 text-sm font-medium text-error">
+            <Icon name="warning" fill size={20} />
+            アレルギー：{patient.allergies.join('、')}
+          </div>
         )}
-        <div className="flex flex-wrap gap-1.5 text-sm">
-          <span className="text-slate-500">病名</span>
-          {active.length === 0 && <span className="text-slate-400">なし</span>}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="label mr-1">病名</span>
+          {active.length === 0 && <span className="text-sm text-ink-2">なし</span>}
           {active.map((d) => (
-            <span key={d.id} className={`rounded px-2 py-0.5 ${d.main ? 'bg-blue-100 text-blue-800' : 'bg-slate-100'}`}>
-              {d.main && '主 '}
+            <span key={d.id} className={`inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[13px] ${d.main ? 'bg-dx-ctr font-medium text-dx' : 'bg-surface-1 text-ink-2'}`}>
+              {d.main && <Icon name="star" fill size={14} />}
               {d.name}
             </span>
           ))}
         </div>
+        <div className="flex gap-1.5">
+          {FILTERS.map((f) => (
+            <button key={f} onClick={() => setFilter(f)} className={`chip ${filter === f ? 'chip-on' : ''}`}>
+              {filter === f && <Icon name="check" size={16} />}
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex gap-1 border-b border-slate-200 bg-white px-3 py-1.5">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded px-2.5 py-1 text-sm ${filter === f ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 space-y-2 overflow-y-auto p-3">
-        {list.length === 0 && <div className="py-10 text-center text-slate-400">過去の記録はありません（初診）</div>}
+      <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-3">
+        {list.length === 0 && (
+          <div className="flex flex-col items-center gap-2 py-12 text-ink-2">
+            <Icon name="person_add" size={40} className="text-outline" />
+            過去の記録はありません（初診）
+          </div>
+        )}
         {list.map((e) => {
           const showText = filter === '全て' || filter === '記載'
           const showRx = (filter === '全て' || filter === '処方') && e.rx.length > 0
@@ -80,48 +85,59 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
           return (
             <div
               key={e.id}
-              className={`group rounded-lg border bg-white p-3 ${selectedId === e.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
+              className={`group rounded-2xl p-4 transition-colors ${selectedId === e.id ? 'bg-primary-ctr/60 ring-2 ring-primary' : 'bg-surface-1 hover:bg-surface-2'}`}
             >
-              <div className="mb-1.5 flex items-center gap-2">
-                <span className="font-semibold">{e.date}</span>
-                <span className="text-xs text-slate-500">{e.kind}</span>
-                {e.version > 1 && <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-800">訂正 v{e.version}</span>}
+              <div className="mb-2 flex items-center gap-2">
+                <span className="font-medium">{e.date}</span>
+                <span className="text-xs text-ink-2">{e.kind}</span>
+                {e.version > 1 && <span className="rounded-md bg-doc-ctr px-1.5 text-[11px] font-medium text-doc">訂正 v{e.version}</span>}
                 <span className="flex-1" />
-                <div className="flex gap-1 opacity-60 group-hover:opacity-100">
+                <div className="flex gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
                   {e.rx.length > 0 && (
-                    <button onClick={() => onDo(e.id)} className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-blue-50">
-                      この処方をDo
+                    <button onClick={() => onDo(e.id)} className="btn btn-sm btn-text px-2.5" title="この処方をDo">
+                      <Icon name="replay" size={18} />
+                      Do
                     </button>
                   )}
-                  <button onClick={() => onQuote(encounterSummary(e))} className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-blue-50">
-                    引用
+                  <button onClick={() => onQuote(encounterSummary(e))} className="icon-btn icon-btn-sm" title="引用">
+                    <Icon name="format_quote" size={18} />
                   </button>
-                  <button onClick={() => onEdit(e.id)} className="rounded border border-slate-300 px-2 py-0.5 text-xs hover:bg-blue-50">
-                    編集
+                  <button onClick={() => onEdit(e.id)} className="icon-btn icon-btn-sm" title="編集（訂正）">
+                    <Icon name="edit" size={18} />
                   </button>
                 </div>
               </div>
               {showText && (
                 <>
-                  {vitalsLine(e.vitals) && <div className="mb-1 font-mono text-xs text-slate-600">{vitalsLine(e.vitals)}</div>}
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">{e.text || <span className="text-slate-400">（記載なし）</span>}</div>
+                  {vitalsLine(e.vitals) && <div className="mb-1 text-xs tabular-nums text-ink-2">{vitalsLine(e.vitals)}</div>}
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap">{e.text || <span className="text-ink-2">（記載なし）</span>}</div>
                 </>
               )}
               {showRx && (
-                <div className="mt-2 rounded bg-emerald-50 px-2 py-1.5 text-sm">
+                <div className="mt-2.5 rounded-xl bg-white px-3 py-2 text-sm">
+                  <div className="mb-0.5 flex items-center gap-1 text-xs font-medium text-rx">
+                    <Icon name="medication" size={16} />
+                    処方
+                  </div>
                   {e.rx.map((r) => (
                     <div key={r.id}>
-                      Rp {r.name} {r.dose}
+                      {r.name} {r.dose}
                       {r.unit} {r.usage} {r.days}日
                     </div>
                   ))}
                 </div>
               )}
-              {showTests && <div className="mt-2 rounded bg-violet-50 px-2 py-1.5 text-sm">検査：{e.tests.map((t) => t.name).join('、')}</div>}
+              {showTests && (
+                <div className="mt-2 flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm">
+                  <Icon name="biotech" size={16} className="text-lab" />
+                  {e.tests.map((t) => t.name).join('、')}
+                </div>
+              )}
               {showDocs &&
                 e.letters.map((l) => (
-                  <div key={l.id} className="mt-2 rounded bg-orange-50 px-2 py-1.5 text-sm">
-                    文書：{l.title}（{l.to || '宛先未記入'}）
+                  <div key={l.id} className="mt-2 flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm">
+                    <Icon name="description" size={16} className="text-doc" />
+                    {l.title}（{l.to || '宛先未記入'}）
                   </div>
                 ))}
             </div>

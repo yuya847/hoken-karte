@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { toHira } from './CommandPalette'
+import { Icon } from './Icon'
 
 export type SearchItem = { id: string; label: string; sub?: string; keys: string }
 
@@ -8,14 +9,11 @@ type Props = {
   placeholder: string
   onPick: (id: string) => void
   inputRef?: React.Ref<HTMLInputElement>
-  tone: 'emerald' | 'violet' | 'blue'
+  icon?: string
 }
 
-const RING = { emerald: 'focus:border-emerald-500 focus:ring-emerald-100', violet: 'focus:border-violet-500 focus:ring-violet-100', blue: 'focus:border-blue-500 focus:ring-blue-100' }
-const ACTIVE = { emerald: 'bg-emerald-50', violet: 'bg-violet-50', blue: 'bg-blue-50' }
-
 // 種類ごとの検索欄。かな・ローマ字略称で引き、Enterで追加して欄を空に戻す（続けて次を引ける）。
-export function OrderSearch({ items, placeholder, onPick, inputRef, tone }: Props) {
+export function OrderSearch({ items, placeholder, onPick, inputRef, icon = 'search' }: Props) {
   const [q, setQ] = useState('')
   const [idx, setIdx] = useState(0)
   const [open, setOpen] = useState(false)
@@ -33,8 +31,11 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, tone }: Prop
     setIdx(0)
   }
 
+  const showList = open && results.length > 0
+
   return (
     <div className="relative">
+      <Icon name={icon} size={20} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-2" />
       <input
         ref={inputRef}
         value={q}
@@ -61,10 +62,11 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, tone }: Prop
           }
         }}
         placeholder={placeholder}
-        className={`w-full rounded border border-slate-300 px-2 py-1.5 text-sm outline-none focus:ring-2 ${RING[tone]}`}
+        className={`h-11 w-full rounded-full bg-surface-1 pr-4 pl-10 text-sm outline-none transition-colors placeholder:text-ink-2/70 hover:bg-surface-2 focus:bg-white focus:shadow-md ${showList ? 'rounded-b-none rounded-t-3xl' : ''}`}
       />
-      {open && results.length > 0 && (
-        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+      {showList && (
+        <div className="absolute z-20 w-full overflow-hidden rounded-b-3xl bg-white pb-2 shadow-md">
+          <div className="mx-4 mb-1 border-t border-surface-2" />
           {results.map((c, i) => (
             <div
               key={c.id}
@@ -73,10 +75,11 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, tone }: Prop
                 e.preventDefault()
                 pick(c)
               }}
-              className={`flex cursor-pointer items-center gap-3 px-3 py-1.5 text-sm ${i === idx ? ACTIVE[tone] : ''}`}
+              className={`flex cursor-pointer items-center gap-3 px-4 py-2 text-sm ${i === idx ? 'bg-surface-1' : ''}`}
             >
+              <Icon name="add" size={18} className="text-ink-2" />
               <span className="flex-1 truncate">{c.label}</span>
-              {c.sub && <span className="truncate text-xs text-slate-500">{c.sub}</span>}
+              {c.sub && <span className="truncate text-xs text-ink-2">{c.sub}</span>}
             </div>
           ))}
         </div>

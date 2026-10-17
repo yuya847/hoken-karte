@@ -3,6 +3,7 @@ import { CommandPalette, type Command } from './CommandPalette'
 import { DISEASES, DRUGS, SETS, TESTS } from './data'
 import { LeftPane } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
+import { Icon } from './Icon'
 import { ImageViewer } from './ImageViewer'
 import { TestPicker } from './TestPicker'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
@@ -15,10 +16,10 @@ const GOAL_SECONDS = 60
 const GOAL_OPS = 15
 
 const STATUS_STYLE: Record<QueueStatus, string> = {
-  待ち: 'bg-amber-100 text-amber-800',
-  診察中: 'bg-blue-600 text-white',
-  会計待ち: 'bg-emerald-100 text-emerald-800',
-  済: 'bg-slate-100 text-slate-400',
+  待ち: 'bg-[#ffefc9] text-[#5c4300]',
+  診察中: 'bg-primary-ctr text-on-primary-ctr',
+  会計待ち: 'bg-rx-ctr text-rx',
+  済: 'bg-surface-2 text-ink-2',
 }
 
 const fmtSec = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -157,21 +158,39 @@ export default function App() {
   const editing = patient && mode.kind === 'edit-past' ? patient.encounters.find((e) => e.id === mode.encounterId) : undefined
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="no-print flex items-center gap-3 bg-slate-900 px-4 py-2 text-white">
-        <button onClick={() => dispatch({ type: 'close' })} className="font-semibold">
-          保険診療カルテ
+    <div className="flex h-full flex-col bg-page">
+      <header className="no-print flex h-16 shrink-0 items-center gap-2 px-3">
+        <button onClick={() => dispatch({ type: 'close' })} className="flex items-center gap-2 rounded-full py-1 pr-4 pl-2 hover:bg-ink/5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white">
+            <Icon name="clinical_notes" fill size={22} />
+          </span>
+          <span className="text-[22px] text-ink-2">保険診療カルテ</span>
         </button>
-        <span className="rounded bg-slate-700 px-1.5 text-xs">試作・架空データ</span>
-        <span className="flex-1" />
+        <span className="rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-2">試作・架空データ</span>
+
+        <button
+          onClick={() => setPalette(true)}
+          className="mx-auto flex h-12 w-full max-w-[640px] items-center gap-3 rounded-full bg-surface-2 px-4 text-left text-ink-2 transition-colors hover:bg-surface-2/70 hover:shadow-sm"
+        >
+          <Icon name="search" size={22} />
+          <span className="flex-1 text-[15px]">薬・検査・病名・操作を検索</span>
+          <span className="kbd">⌘K</span>
+        </button>
+
         {state.session && (
-          <div className="flex gap-3 font-mono text-sm">
-            <span className={elapsed > GOAL_SECONDS ? 'text-red-300' : 'text-emerald-300'}>⏱ {fmtSec(elapsed)}</span>
-            <span className={ops > GOAL_OPS ? 'text-red-300' : 'text-emerald-300'}>操作 {ops}</span>
+          <div className="flex items-center gap-1.5 text-sm">
+            <span className={`flex h-8 items-center gap-1 rounded-lg px-2.5 font-medium ${elapsed > GOAL_SECONDS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`}>
+              <Icon name="timer" size={18} />
+              {fmtSec(elapsed)}
+            </span>
+            <span className={`flex h-8 items-center gap-1 rounded-lg px-2.5 font-medium ${ops > GOAL_OPS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`}>
+              <Icon name="ads_click" size={18} />
+              {ops}
+            </span>
           </div>
         )}
-        <button onClick={() => setMetricsOpen(true)} className="rounded border border-slate-600 px-2 py-1 text-xs">
-          計測 ⌘M
+        <button onClick={() => setMetricsOpen(true)} className="icon-btn" title="操作計測（⌘M）">
+          <Icon name="monitoring" />
         </button>
       </header>
 
@@ -179,30 +198,35 @@ export default function App() {
 
       {patient ? (
         <>
-          <div className="no-print flex items-center gap-4 border-b border-slate-200 bg-white px-4 py-2">
-            <PatientIcon patient={patient} size={40} />
+          <div className="no-print flex items-center gap-4 px-5 py-3">
+            <PatientIcon patient={patient} size={48} />
             <div>
-              <div>
-                <span className="text-lg font-bold">{patient.name}</span>
-                <span className="ml-2 text-sm text-slate-500">{patient.kana}</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-[22px] leading-7">{patient.name}</span>
+                <span className="text-sm text-ink-2">{patient.kana}</span>
               </div>
-              <div className="text-xs text-slate-500">{birthLabel(patient.birth)}生</div>
+              <div className="text-xs text-ink-2">{birthLabel(patient.birth)}生</div>
             </div>
-            <span className="text-base font-semibold">{ageSex(patient)}</span>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-sm">
+            <span className="text-base font-medium">{ageSex(patient)}</span>
+            <span className="flex h-8 items-center gap-1 rounded-lg border border-outline-var px-3 text-[13px] text-ink-2">
+              <Icon name="badge" size={18} />
               {patient.insurance} {Math.round(patient.burden * 10)}割
             </span>
-            <span className="text-sm text-slate-500">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
+            <span className="flex h-8 items-center rounded-lg border border-outline-var px-3 text-[13px] text-ink-2">
+              {patient.encounters.length === 0 ? '初診' : '再診'}
+            </span>
             <span className="flex-1" />
-            <span className={`text-xs ${saveOk ? 'text-slate-500' : 'font-bold text-red-600'}`}>
+            <span className={`flex items-center gap-1 text-xs ${saveOk ? 'text-ink-2' : 'font-medium text-error'}`}>
+              <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={18} />
               {saveOk ? (draft.savedAt ? `下書き保存 ${draft.savedAt}` : '下書きなし') : '下書きを保存できません'}
             </span>
-            <button onClick={confirm} className="rounded bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-700">
-              確定して会計へ <kbd className="opacity-70">⌘Enter</kbd>
+            <button onClick={confirm} className="btn btn-filled">
+              <Icon name="check" size={20} />
+              確定して会計へ <span className="kbd">⌘Enter</span>
             </button>
           </div>
-          <main className="grid min-h-0 flex-1 grid-cols-[2fr_3fr_auto]">
-            <div className="no-print min-h-0 border-r border-slate-200 bg-slate-50">
+          <main className="flex min-h-0 flex-1 gap-2 px-2 pb-1">
+            <div className="no-print card min-h-0 flex-[2] overflow-hidden">
               <LeftPane
                 patient={patient}
                 selectedId={editing?.id ?? null}
@@ -215,7 +239,7 @@ export default function App() {
                 onEdit={(id) => dispatch({ type: 'mode', mode: { kind: 'edit-past', encounterId: id } })}
               />
             </div>
-            <div className="min-h-0">
+            <div className="card min-h-0 flex-[3] overflow-hidden">
               {mode.kind === 'letter' ? (
                 <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
               ) : mode.kind === 'tests' ? (
@@ -235,14 +259,21 @@ export default function App() {
         <Reception patients={state.patients} dispatch={dispatch} />
       )}
 
-      <footer className="no-print flex gap-4 border-t border-slate-200 bg-white px-4 py-1.5 text-xs text-slate-500">
-        <span>⌘K 検索・追加</span>
-        <span>⌘P 処方検索</span>
-        <span>⌘D Do処方</span>
-        <span>⌘⇧D 前回記載コピー</span>
-        <span>⌘L 紹介状</span>
-        <span>⌘Enter 確定</span>
-        <span>⌘J 次の患者</span>
+      <footer className="no-print flex shrink-0 flex-wrap gap-x-4 gap-y-1 px-5 py-2 text-xs text-ink-2">
+        {[
+          ['⌘K', '検索・追加'],
+          ['⌘P', '処方検索'],
+          ['⌘D', 'Do処方'],
+          ['⌘⇧D', '前回記載コピー'],
+          ['⌘L', '紹介状'],
+          ['⌘Enter', '確定'],
+          ['⌘J', '次の患者'],
+        ].map(([k, l]) => (
+          <span key={k} className="flex items-center gap-1">
+            <span className="kbd">{k}</span>
+            {l}
+          </span>
+        ))}
         <span className="flex-1" />
         <span>
           目標：再診 {GOAL_SECONDS}秒・{GOAL_OPS}操作以内
@@ -251,36 +282,37 @@ export default function App() {
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
       {metricsOpen && <MetricsPanel state={state} dispatch={dispatch} onClose={() => setMetricsOpen(false)} />}
-      {toast && <div className="no-print fixed bottom-12 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white shadow-lg">{toast}</div>}
+      {toast && (
+        <div className="no-print fixed bottom-6 left-6 z-50 flex min-w-[344px] items-center gap-3 rounded-lg bg-[#303030] px-4 py-3.5 text-sm text-[#f2f2f2] shadow-lg">
+          <Icon name="check_circle" size={20} className="text-[#a8c7fa]" />
+          {toast}
+        </div>
+      )}
     </div>
   )
 }
 
-// ブラウザのタブのように、受付一覧と診察対象の患者を切り替える
+// Material の主要タブ。受付一覧と診察対象の患者を切り替える
 function PatientTabs({ patients, currentId, dispatch }: { patients: Patient[]; currentId: string | null; dispatch: (a: Action) => void }) {
   const open = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
   const tab = (active: boolean) =>
-    `-mb-px flex shrink-0 items-center gap-2 rounded-t-lg border px-3 py-1.5 text-sm ${
-      active ? 'border-slate-300 border-b-white bg-white font-semibold text-slate-900' : 'border-transparent text-slate-600 hover:bg-slate-50'
-    }`
+    `relative flex h-12 shrink-0 items-center gap-2 px-4 text-sm font-medium transition-colors hover:bg-ink/5 ${active ? 'text-primary' : 'text-ink-2'}`
+  const Indicator = ({ on }: { on: boolean }) => (on ? <span className="absolute inset-x-2 bottom-0 h-[3px] rounded-t-full bg-primary" /> : null)
   return (
-    <div role="tablist" className="no-print flex items-end gap-0.5 overflow-x-auto border-b border-slate-300 bg-slate-200 px-2 pt-1.5">
+    <div role="tablist" className="no-print flex shrink-0 items-end overflow-x-auto border-b border-outline-var px-3">
       <button role="tab" aria-selected={currentId === null} onClick={() => dispatch({ type: 'close' })} className={tab(currentId === null)}>
+        <Icon name="groups" fill={currentId === null} />
         受付一覧
-        <span className="rounded-full bg-slate-300 px-1.5 text-xs font-normal text-slate-700">{open.length}</span>
+        <span className={`rounded-full px-1.5 text-[11px] ${currentId === null ? 'bg-primary text-white' : 'bg-surface-2 text-ink-2'}`}>{open.length}</span>
+        <Indicator on={currentId === null} />
       </button>
       {open.map((p) => (
-        <button
-          key={p.id}
-          role="tab"
-          aria-selected={p.id === currentId}
-          onClick={() => dispatch({ type: 'open', patientId: p.id })}
-          className={`${tab(p.id === currentId)} max-w-60`}
-        >
-          <PatientIcon patient={p} size={22} />
+        <button key={p.id} role="tab" aria-selected={p.id === currentId} onClick={() => dispatch({ type: 'open', patientId: p.id })} className={`${tab(p.id === currentId)} max-w-64`}>
+          <PatientIcon patient={p} size={24} />
           <span className="truncate">{p.name}</span>
-          <span className="text-xs font-normal text-slate-500">{ageSex(p)}</span>
-          <span className={`rounded px-1 text-[10px] font-normal ${STATUS_STYLE[p.status]}`}>{p.status}</span>
+          <span className="text-xs font-normal text-ink-2">{ageSex(p)}</span>
+          {p.status === '診察中' && <span className="h-2 w-2 rounded-full bg-primary" title="診察中" />}
+          <Indicator on={p.id === currentId} />
         </button>
       ))}
     </div>
@@ -289,17 +321,17 @@ function PatientTabs({ patients, currentId, dispatch }: { patients: Patient[]; c
 
 function Reception({ patients, dispatch }: { patients: Patient[]; dispatch: (a: Action) => void }) {
   return (
-    <main className="flex-1 overflow-y-auto p-6">
-      <h1 className="mb-3 text-lg font-bold">受付・会計</h1>
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <main className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-1">
+      <div className="card px-6 py-5">
+        <h1 className="mb-4 text-[22px]">受付・会計</h1>
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs text-slate-500">
-            <tr>
-              <th className="px-3 py-2">状態</th>
-              <th className="px-3 py-2">氏名</th>
-              <th className="px-3 py-2">年齢・性別／生年月日</th>
-              <th className="px-3 py-2">保険</th>
-              <th className="px-3 py-2">今日の内容</th>
+          <thead className="text-left text-xs text-ink-2">
+            <tr className="border-b border-outline-var">
+              <th className="px-3 py-2 font-medium">状態</th>
+              <th className="px-3 py-2 font-medium">氏名</th>
+              <th className="px-3 py-2 font-medium">年齢・性別／生年月日</th>
+              <th className="px-3 py-2 font-medium">保険</th>
+              <th className="px-3 py-2 font-medium">今日の内容</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -308,37 +340,39 @@ function Reception({ patients, dispatch }: { patients: Patient[]; dispatch: (a: 
               const done = p.status === '会計待ち' || p.status === '済'
               const last = p.encounters.at(-1)
               return (
-                <tr key={p.id} className="border-t border-slate-100">
-                  <td className="px-3 py-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_STYLE[p.status]}`}>{p.status}</span>
+                <tr key={p.id} className="border-b border-surface-2 hover:bg-surface-1">
+                  <td className="px-3 py-2.5">
+                    <span className={`rounded-lg px-2.5 py-1 text-xs font-medium ${STATUS_STYLE[p.status]}`}>{p.status}</span>
                   </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <PatientIcon patient={p} size={28} />
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-3">
+                      <PatientIcon patient={p} size={36} />
                       <div>
                         <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-slate-500">{p.kana}</div>
+                        <div className="text-xs text-ink-2">{p.kana}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <div>{ageSex(p)}</div>
-                    <div className="text-xs text-slate-500">{birthLabel(p.birth)}生</div>
+                    <div className="text-xs text-ink-2">{birthLabel(p.birth)}生</div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     {p.insurance} {Math.round(p.burden * 10)}割
                   </td>
-                  <td className="px-3 py-2 text-slate-600">
+                  <td className="px-3 py-2.5 text-ink-2">
                     {done && last ? `${last.kind}・処方${last.rx.length}剤・検査${last.tests.length}件${last.letters.length ? '・紹介状' : ''}` : '—'}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2.5 text-right">
                     {!done && (
-                      <button onClick={() => dispatch({ type: 'open', patientId: p.id })} className="rounded bg-blue-600 px-3 py-1 text-xs text-white">
+                      <button onClick={() => dispatch({ type: 'open', patientId: p.id })} className="btn btn-sm btn-filled">
+                        <Icon name="stethoscope" size={18} />
                         診察
                       </button>
                     )}
                     {p.status === '会計待ち' && (
-                      <button onClick={() => dispatch({ type: 'paid', patientId: p.id })} className="rounded bg-emerald-600 px-3 py-1 text-xs text-white">
+                      <button onClick={() => dispatch({ type: 'paid', patientId: p.id })} className="btn btn-sm btn-tonal">
+                        <Icon name="payments" size={18} />
                         会計済にする
                       </button>
                     )}
@@ -348,11 +382,15 @@ function Reception({ patients, dispatch }: { patients: Patient[]; dispatch: (a: 
             })}
           </tbody>
         </table>
+        <p className="mt-4 flex items-center gap-1.5 text-xs text-ink-2">
+          <Icon name="info" size={16} />
+          点数・窓口負担の計算は算定エンジン（Phase 3）で実装します。この画面は流れの確認用です。
+        </p>
+        <button onClick={() => dispatch({ type: 'reset' })} className="btn btn-sm btn-text mt-4 -ml-3">
+          <Icon name="restart_alt" size={18} />
+          架空データを初期状態に戻す
+        </button>
       </div>
-      <p className="mt-3 text-xs text-slate-500">点数・窓口負担の計算は算定エンジン（Phase 3）で実装します。この画面は流れの確認用です。</p>
-      <button onClick={() => dispatch({ type: 'reset' })} className="mt-6 rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-500">
-        架空データを初期状態に戻す
-      </button>
     </main>
   )
 }
@@ -362,56 +400,63 @@ function MetricsPanel({ state, dispatch, onClose }: { state: State; dispatch: (a
   const avg = (f: (x: (typeof m)[number]) => number) => (m.length ? Math.round(m.reduce((s, x) => s + f(x), 0) / m.length) : 0)
   return (
     <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30" onMouseDown={onClose}>
-      <div className="w-[640px] max-w-[92vw] rounded-xl bg-white p-5 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold">操作計測</h2>
-          <button onClick={onClose} className="text-sm text-slate-400">
-            閉じる Esc
+      <div className="w-[640px] max-w-[92vw] rounded-[28px] bg-surface-1 p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-2 flex items-center gap-3">
+          <Icon name="monitoring" size={24} className="text-primary" />
+          <h2 className="flex-1 text-2xl">操作計測</h2>
+          <button onClick={onClose} className="icon-btn" title="閉じる（Esc）">
+            <Icon name="close" />
           </button>
         </div>
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-4 text-sm text-ink-2">
           患者を開いてから確定までの時間と操作数（クリック＋ショートカット。文字入力は含まない）。目標は再診 {GOAL_SECONDS}秒・{GOAL_OPS}操作以内。
         </p>
         {m.length === 0 ? (
-          <div className="py-8 text-center text-slate-400">まだ計測結果がありません</div>
+          <div className="rounded-2xl bg-white py-10 text-center text-ink-2">まだ計測結果がありません</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-slate-500">
-              <tr>
-                <th className="py-1">患者</th>
-                <th>区分</th>
-                <th className="text-right">時間</th>
-                <th className="text-right">操作</th>
-                <th className="text-right">判定</th>
-              </tr>
-            </thead>
-            <tbody>
-              {m.map((x) => {
-                const ok = x.seconds <= GOAL_SECONDS && x.ops <= GOAL_OPS
-                return (
-                  <tr key={x.at} className="border-t border-slate-100">
-                    <td className="py-1">{x.patientName}</td>
-                    <td>{x.kind}</td>
-                    <td className="text-right font-mono">{fmtSec(x.seconds)}</td>
-                    <td className="text-right font-mono">{x.ops}</td>
-                    <td className={`text-right ${x.kind === '再診' ? (ok ? 'text-emerald-600' : 'text-red-600') : 'text-slate-400'}`}>
-                      {x.kind === '再診' ? (ok ? '達成' : '未達') : '対象外'}
-                    </td>
-                  </tr>
-                )
-              })}
-              <tr className="border-t-2 border-slate-200 font-semibold">
-                <td className="py-1">平均（{m.length}件）</td>
-                <td></td>
-                <td className="text-right font-mono">{fmtSec(avg((x) => x.seconds))}</td>
-                <td className="text-right font-mono">{avg((x) => x.ops)}</td>
-                <td></td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="overflow-hidden rounded-2xl bg-white">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-ink-2">
+                <tr>
+                  <th className="px-4 py-2 font-medium">患者</th>
+                  <th className="font-medium">区分</th>
+                  <th className="text-right font-medium">時間</th>
+                  <th className="text-right font-medium">操作</th>
+                  <th className="px-4 text-right font-medium">判定</th>
+                </tr>
+              </thead>
+              <tbody>
+                {m.map((x) => {
+                  const ok = x.seconds <= GOAL_SECONDS && x.ops <= GOAL_OPS
+                  return (
+                    <tr key={x.at} className="border-t border-surface-2">
+                      <td className="px-4 py-2">{x.patientName}</td>
+                      <td>{x.kind}</td>
+                      <td className="text-right tabular-nums">{fmtSec(x.seconds)}</td>
+                      <td className="text-right tabular-nums">{x.ops}</td>
+                      <td className="px-4 text-right">
+                        {x.kind === '再診' ? (
+                          <span className={`rounded-lg px-2 py-0.5 text-xs font-medium ${ok ? 'bg-rx-ctr text-rx' : 'bg-error-ctr text-error'}`}>{ok ? '達成' : '未達'}</span>
+                        ) : (
+                          <span className="text-xs text-ink-2">対象外</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+                <tr className="border-t border-outline-var font-medium">
+                  <td className="px-4 py-2">平均（{m.length}件）</td>
+                  <td></td>
+                  <td className="text-right tabular-nums">{fmtSec(avg((x) => x.seconds))}</td>
+                  <td className="text-right tabular-nums">{avg((x) => x.ops)}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         )}
         <div className="mt-4 flex justify-end">
-          <button onClick={() => dispatch({ type: 'clearMetrics' })} className="rounded border border-slate-300 px-3 py-1 text-xs">
+          <button onClick={() => dispatch({ type: 'clearMetrics' })} className="btn btn-sm btn-text">
             計測結果を消去
           </button>
         </div>

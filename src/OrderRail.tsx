@@ -23,7 +23,7 @@ const FALLBACK: Record<RailId, React.ReactNode> = {
 
 export function OrderRail({ active, onSelect }: { active: RailId | null; onSelect: (id: RailId) => void }) {
   return (
-    <nav className="no-print flex w-[72px] shrink-0 flex-col items-center gap-1 border-l border-slate-200 bg-slate-50 py-3">
+    <nav className="no-print flex w-[68px] shrink-0 flex-col items-center gap-2 pt-2">
       {RAIL.map((r) => {
         const url = iconUrl(r.id)
         return (
@@ -31,10 +31,12 @@ export function OrderRail({ active, onSelect }: { active: RailId | null; onSelec
             key={r.id}
             onClick={() => onSelect(r.id)}
             title={r.hint ? `${r.label}（${r.hint}）` : r.label}
-            className={`flex w-16 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[11px] ${active === r.id ? 'bg-white shadow ring-1 ring-slate-300' : 'hover:bg-white'}`}
+            className={`group flex w-16 flex-col items-center gap-1 py-1 text-[11px] font-medium ${active === r.id ? 'text-on-secondary-ctr' : 'text-ink-2'}`}
           >
             {url ? (
-              <img src={url} alt="" className="h-10 w-10 rounded-lg" />
+              <span className={`flex h-10 w-14 items-center justify-center rounded-full transition-colors ${active === r.id ? 'bg-secondary-ctr' : 'group-hover:bg-ink/8'}`}>
+                <img src={url} alt="" className="h-7 w-7 rounded-md" />
+              </span>
             ) : (
               <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${r.tone}`}>
                 <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -42,7 +44,7 @@ export function OrderRail({ active, onSelect }: { active: RailId | null; onSelec
                 </svg>
               </span>
             )}
-            <span className="text-slate-700">{r.label}</span>
+            <span>{r.label}</span>
           </button>
         )
       })}
