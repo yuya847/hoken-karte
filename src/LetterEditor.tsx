@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Icon } from './Icon'
+import { diseaseLabel } from './orders'
 import { ageSex, birthLabel } from './PatientIcon'
 import { vitalsLine } from './LeftPane'
 import type { Action } from './store'
@@ -49,7 +50,7 @@ export function LetterEditor({ patient, draft, dispatch }: { patient: Patient; d
           <div>
             患者：{patient.name}（{patient.kana}） {ageSex(patient)} {birthLabel(patient.birth)}生
           </div>
-          <div>傷病名：{diseases.map((d) => d.name).join('、') || '—'}</div>
+          <div>傷病名：{diseases.map(diseaseLabel).join('、') || '—'}</div>
           <div>直近のバイタル：{vitalsLine(vitals) || '—'}</div>
           <div>
             現在の処方：

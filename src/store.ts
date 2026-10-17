@@ -1,4 +1,5 @@
 import { DISEASES, SETS, initialPatients, rxFromDrug, testFromCode, today, uid } from './data'
+import { diseaseLabel, linkedDiseases } from './orders'
 import { parseVitals } from './vitals'
 import type { Disease, Draft, Encounter, Patient, RightMode, RxItem, SessionMetric, TestOrder, Vitals } from './types'
 
@@ -25,7 +26,7 @@ export type Action =
   | { type: 'removeTest'; id: string }
   | { type: 'toggleTest'; code: string }
   | { type: 'setTests'; codes: string[] }
-  | { type: 'addDisease'; name: string }
+  | { type: 'addDisease'; name: string; suspected?: boolean }
   | { type: 'updateDisease'; id: string; patch: Partial<Disease> }
   | { type: 'applySet'; setId: string }
   | { type: 'letter'; patch: Partial<NonNullable<Draft['letter']>> | null }
@@ -141,11 +142,14 @@ export function reducer(s: State, a: Action): State {
       return mapDraft(s, (d) => ({ ...d, tests: d.tests.filter((t) => t.id !== a.id) }))
     case 'addDisease': {
       if (!DISEASES.some((x) => x.name === a.name)) return s
-      return mapPatient(s, (p) =>
-        p.diseases.some((x) => x.name === a.name && x.status === '継続')
-          ? p
-          : { ...p, diseases: [...p.diseases, { id: uid('dis'), name: a.name, start: today(), main: p.diseases.length === 0, status: '継続' }] },
-      )
+      const suspected = a.suspected ?? false
+      return mapPatient(s, (p) => {
+        const cur = p.diseases.find((x) => x.name === a.name && x.status === '継続')
+        // 同じ病名が「疑い」で付いていて確定で追加されたら、疑いを外す
+        if (cur) return cur.suspected && !suspected ? { ...p, diseases: p.diseases.map((x) => (x.id === cur.id ? { ...x, suspected: false } : x)) } : p
+        const main = !p.diseases.some((x) => x.status === '継続' && x.main) && !suspected
+        return { ...p, diseases: [...p.diseases, { id: uid('dis'), name: a.name, start: today(), main, status: '継続', suspected }] }
+      })
     }
     case 'updateDisease':
       return mapPatient(s, (p) => ({ ...p, diseases: p.diseases.map((x) => (x.id === a.id ? { ...x, ...a.patch } : x)) }))
@@ -198,8 +202,8 @@ export function reducer(s: State, a: Action): State {
         kind: p.encounters.length === 0 ? '初診' : '再診',
         vitals: parseVitals(d.text),
         text: d.text,
-        rx: d.rx,
-        tests: d.tests,
+        rx: d.rx.map((item) => ({ ...item, diseases: linkedDiseases(p, { kind: 'rx', item }).map(diseaseLabel) })),
+        tests: d.tests.map((item) => ({ ...item, diseases: linkedDiseases(p, { kind: 'test', item }).map(diseaseLabel) })),
         letters: d.letter ? [d.letter] : [],
         version: 1,
         history: [],

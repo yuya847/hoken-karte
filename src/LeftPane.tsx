@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Icon } from './Icon'
+import { diseaseLabel } from './orders'
 import type { Encounter, Patient, Vitals } from './types'
 
 export type Filter = '全て' | '記載' | '処方' | '検査' | '文書'
@@ -55,7 +56,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
           {active.map((d) => (
             <span key={d.id} className={`inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[13px] ${d.main ? 'bg-dx-ctr font-medium text-dx' : 'bg-surface-1 text-ink-2'}`}>
               {d.main && <Icon name="star" fill size={14} />}
-              {d.name}
+              {diseaseLabel(d)}
             </span>
           ))}
         </div>
@@ -123,6 +124,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
                     <div key={r.id}>
                       {r.name} {r.dose}
                       {r.unit} {r.usage} {r.days}日
+                      {r.diseases && r.diseases.length > 0 && <span className="ml-1.5 text-xs text-dx">→ {r.diseases.join('、')}</span>}
                     </div>
                   ))}
                 </div>
@@ -130,7 +132,15 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
               {showTests && (
                 <div className="mt-2 flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm">
                   <Icon name="biotech" size={16} className="text-lab" />
-                  {e.tests.map((t) => t.name).join('、')}
+                  <span>
+                    {e.tests.map((t, i) => (
+                      <span key={t.id}>
+                        {i > 0 && '、'}
+                        {t.name}
+                        {t.diseases && t.diseases.length > 0 && <span className="text-xs text-dx">（{t.diseases.join('・')}）</span>}
+                      </span>
+                    ))}
+                  </span>
                 </div>
               )}
               {showDocs &&

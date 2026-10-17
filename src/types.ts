@@ -15,9 +15,10 @@ export type RxItem = {
   unit: string
   usage: string
   days: number
+  diseases?: string[] // 確定時に紐付いた病名（表示名）
 }
 
-export type TestOrder = { id: string; code: string; name: string }
+export type TestOrder = { id: string; code: string; name: string; diseases?: string[] }
 
 export type DiseaseStatus = '継続' | '治癒' | '中止'
 
@@ -27,6 +28,7 @@ export type Disease = {
   start: string
   main: boolean
   status: DiseaseStatus
+  suspected?: boolean
 }
 
 export type Letter = {

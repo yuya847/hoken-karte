@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { Icon } from './Icon'
 
-export type SearchItem = { id: string; label: string; sub?: string; keys: string }
+export type SearchItem = { id: string; label: string; sub?: string; keys: string; icon?: string; iconClass?: string; tag?: string }
 
 type Props = {
   items: SearchItem[]
@@ -21,7 +21,7 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, icon = 'sear
   const results = useMemo(() => {
     const terms = toHira(q.trim().toLowerCase()).split(/\s+/).filter(Boolean)
     if (terms.length === 0) return []
-    return items.filter((c) => terms.every((t) => toHira(`${c.label} ${c.keys}`.toLowerCase()).includes(t))).slice(0, 8)
+    return items.filter((c) => terms.every((t) => toHira(`${c.label} ${c.keys}`.toLowerCase()).includes(t))).slice(0, 10)
   }, [q, items])
 
   const pick = (c: SearchItem | undefined) => {
@@ -77,7 +77,8 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, icon = 'sear
               }}
               className={`flex cursor-pointer items-center gap-3 px-4 py-2 text-sm ${i === idx ? 'bg-surface-1' : ''}`}
             >
-              <Icon name="add" size={18} className="text-ink-2" />
+              <Icon name={c.icon ?? 'add'} size={18} className={c.iconClass ?? 'text-ink-2'} />
+              {c.tag && <span className="w-8 shrink-0 text-xs text-ink-2">{c.tag}</span>}
               <span className="flex-1 truncate">{c.label}</span>
               {c.sub && <span className="truncate text-xs text-ink-2">{c.sub}</span>}
             </div>

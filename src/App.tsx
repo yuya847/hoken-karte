@@ -8,9 +8,10 @@ import { ImageViewer } from './ImageViewer'
 import { TestPicker } from './TestPicker'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
 import { OrderRail, type RailId } from './OrderRail'
-import { ChartEditor, PastEditor, type FocusReq } from './RightPane'
+import { ChartEditor, DiseaseLink, PastEditor, type FocusReq } from './RightPane'
+import { unlinkedOrders } from './orders'
 import { emptyDraft, loadState, reducer, saveState, type Action, type State } from './store'
-import type { Patient, QueueStatus } from './types'
+import type { Draft, Patient, QueueStatus } from './types'
 
 const GOAL_SECONDS = 60
 const GOAL_OPS = 15
@@ -22,6 +23,24 @@ const STATUS_STYLE: Record<QueueStatus, string> = {
   済: 'bg-surface-2 text-ink-2',
 }
 
+type TabStyle = 'underline' | 'chrome' | 'pill' | 'card'
+const TAB_STYLES: { id: TabStyle; label: string; desc: string }[] = [
+  { id: 'underline', label: 'A 下線タブ', desc: 'Material標準。軽く、数が多くても並ぶ' },
+  { id: 'chrome', label: 'B ブラウザ型', desc: 'Chromeのタブ風。開いている感覚が強い' },
+  { id: 'pill', label: 'C ピル型', desc: '丸い札。選択中が塗りでひと目で分かる' },
+  { id: 'card', label: 'D カード型', desc: '2行で主病名・状態まで見える。待合の把握向き' },
+]
+const TAB_KEY = 'hoken-karte-tab-style'
+const loadTabStyle = (): TabStyle => {
+  try {
+    const v = localStorage.getItem(TAB_KEY)
+    if (TAB_STYLES.some((t) => t.id === v)) return v as TabStyle
+  } catch {
+    // 読めなければ既定
+  }
+  return 'underline'
+}
+
 const fmtSec = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
 export default function App() {
@@ -31,6 +50,11 @@ export default function App() {
   const [saveOk, setSaveOk] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
   const [focusReq, setFocusReq] = useState<FocusReq>(null)
+  const [checkOpen, setCheckOpen] = useState(false)
+  const [tabStyle, setTabStyle] = useState<TabStyle>(loadTabStyle)
+  const [tabMenu, setTabMenu] = useState(false)
+  const checkRef = useRef(false)
+  checkRef.current = checkOpen
   const [, tick] = useState(0)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -49,10 +73,13 @@ export default function App() {
     return () => clearTimeout(t)
   }, [toast])
 
-  const confirm = () => {
+  // 病名漏れがあれば確認画面を出す。force で漏れがあっても確定する
+  const confirm = (force = false) => {
     const s = stateRef.current
     const p = s.patients.find((x) => x.id === s.currentId)
     if (!p) return
+    if (!force && unlinkedOrders(p, s.drafts[p.id] ?? emptyDraft()).length > 0) return setCheckOpen(true)
+    setCheckOpen(false)
     const secs = s.session ? Math.round((Date.now() - s.session.startedAt) / 1000) : 0
     const ops = s.session?.ops ?? 0
     const next = s.patients.find((x) => x.status === '待ち' && x.id !== p.id)
@@ -76,7 +103,7 @@ export default function App() {
     dispatch({ type: 'mode', mode: { kind: 'letter' } })
   }
 
-  const focusOrder = (target: 'rx' | 'test' | 'disease') => {
+  const focusOrder = (target: 'order' | 'disease') => {
     dispatch({ type: 'mode', mode: { kind: 'chart' } })
     setFocusReq((r) => ({ target, n: (r?.n ?? 0) + 1 }))
   }
@@ -86,7 +113,17 @@ export default function App() {
     if (id === 'letter') return toggleLetter()
     if (id === 'test') return dispatch({ type: 'mode', mode: s.mode.kind === 'tests' ? { kind: 'chart' } : { kind: 'tests' } })
     if (id === 'image') return dispatch({ type: 'mode', mode: s.mode.kind === 'images' ? { kind: 'chart' } : { kind: 'images' } })
-    focusOrder(id)
+    focusOrder(id === 'disease' ? 'disease' : 'order')
+  }
+
+  const chooseTabStyle = (t: TabStyle) => {
+    setTabStyle(t)
+    setTabMenu(false)
+    try {
+      localStorage.setItem(TAB_KEY, t)
+    } catch {
+      // 保存できなくても今回は反映する
+    }
   }
 
   // ショートカットとクリックを「操作数」として数える（文字入力は数えない）
@@ -101,8 +138,14 @@ export default function App() {
         dispatch({ type: 'op' })
         fn()
       }
+      if (checkRef.current) {
+        if (e.key === 'Escape') hit(() => setCheckOpen(false))
+        if (mod && e.key === 'Enter') hit(() => confirm())
+        return
+      }
       if (e.key === 'Escape') {
         setMetricsOpen(false)
+        setTabMenu(false)
         if (s.mode.kind === 'edit-past' || s.mode.kind === 'images' || s.mode.kind === 'tests') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
         return
       }
@@ -113,8 +156,8 @@ export default function App() {
       if (mod && e.shiftKey && k === 'd') return hit(() => dispatch({ type: 'copyLastText' }))
       if (mod && k === 'd') return hit(() => dispatch({ type: 'do' }))
       if (mod && k === 'l') return hit(toggleLetter)
-      if (mod && k === 'p') return hit(() => focusOrder('rx'))
-      if (mod && e.key === 'Enter') return hit(confirm)
+      if (mod && k === 'p') return hit(() => focusOrder('order'))
+      if (mod && e.key === 'Enter') return hit(() => confirm())
     }
     const onClick = () => {
       if (stateRef.current.session) dispatch({ type: 'op' })
@@ -136,7 +179,7 @@ export default function App() {
       { id: 'a-do', group: '操作', label: 'Do処方（前回と同じ処方）', keys: 'do でぃーおー', hint: '⌘D', run: run({ type: 'do' }) },
       { id: 'a-copy', group: '操作', label: '前回記載をコピー', keys: 'copy こぴー ぜんかい', hint: '⌘⇧D', run: run({ type: 'copyLastText' }) },
       { id: 'a-letter', group: '操作', label: '紹介状を作成', keys: 'letter しょうかいじょう ぶんしょ', hint: '⌘L', run: toggleLetter },
-      { id: 'a-confirm', group: '操作', label: '確定して会計へ', keys: 'confirm かくてい かいけい', hint: '⌘Enter', run: confirm },
+      { id: 'a-confirm', group: '操作', label: '確定して会計へ', keys: 'confirm かくてい かいけい', hint: '⌘Enter', run: () => confirm() },
       { id: 'a-next', group: '操作', label: '次の患者', keys: 'next つぎ', hint: '⌘J', run: nextPatient },
       ...SETS.map((x) => ({ id: x.id, group: 'セット' as const, label: x.name, keys: `${x.kana} ${x.alias}`, run: run({ type: 'applySet', setId: x.id }) })),
       ...DRUGS.map((d) => ({
@@ -189,12 +232,31 @@ export default function App() {
             </span>
           </div>
         )}
+        <div className="relative">
+          <button onClick={() => setTabMenu((v) => !v)} className={`icon-btn ${tabMenu ? 'bg-ink/8' : ''}`} title="タブのデザインを切り替え">
+            <Icon name="tab" />
+          </button>
+          {tabMenu && (
+            <div className="absolute right-0 z-40 mt-1 w-80 rounded-2xl bg-surface-1 py-2 shadow-xl">
+              <div className="label px-4 pb-1">タブのデザイン</div>
+              {TAB_STYLES.map((t) => (
+                <button key={t.id} onClick={() => chooseTabStyle(t.id)} className="flex w-full items-start gap-3 px-4 py-2 text-left hover:bg-ink/5">
+                  <Icon name={tabStyle === t.id ? 'radio_button_checked' : 'radio_button_unchecked'} className={tabStyle === t.id ? 'text-primary' : 'text-ink-2'} />
+                  <span>
+                    <span className="block text-sm font-medium">{t.label}</span>
+                    <span className="block text-xs text-ink-2">{t.desc}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button onClick={() => setMetricsOpen(true)} className="icon-btn" title="操作計測（⌘M）">
           <Icon name="monitoring" />
         </button>
       </header>
 
-      <PatientTabs patients={state.patients} currentId={state.currentId} dispatch={dispatch} />
+      <PatientTabs variant={tabStyle} patients={state.patients} currentId={state.currentId} dispatch={dispatch} />
 
       {patient ? (
         <>
@@ -220,7 +282,7 @@ export default function App() {
               <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={18} />
               {saveOk ? (draft.savedAt ? `下書き保存 ${draft.savedAt}` : '下書きなし') : '下書きを保存できません'}
             </span>
-            <button onClick={confirm} className="btn btn-filled">
+            <button onClick={() => confirm()} className="btn btn-filled">
               <Icon name="check" size={20} />
               確定して会計へ <span className="kbd">⌘Enter</span>
             </button>
@@ -281,6 +343,7 @@ export default function App() {
       </footer>
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
+      {checkOpen && patient && <DiseaseCheck patient={patient} draft={draft} dispatch={dispatch} onBack={() => setCheckOpen(false)} onConfirm={confirm} />}
       {metricsOpen && <MetricsPanel state={state} dispatch={dispatch} onClose={() => setMetricsOpen(false)} />}
       {toast && (
         <div className="no-print fixed bottom-6 left-6 z-50 flex min-w-[344px] items-center gap-3 rounded-lg bg-[#303030] px-4 py-3.5 text-sm text-[#f2f2f2] shadow-lg">
@@ -292,22 +355,120 @@ export default function App() {
   )
 }
 
-// Material の主要タブ。受付一覧と診察対象の患者を切り替える
-function PatientTabs({ patients, currentId, dispatch }: { patients: Patient[]; currentId: string | null; dispatch: (a: Action) => void }) {
+// 受付一覧と診察対象の患者を切り替えるタブ。デザインは4案から右上で切り替えられる
+function PatientTabs({ variant, patients, currentId, dispatch }: { variant: TabStyle; patients: Patient[]; currentId: string | null; dispatch: (a: Action) => void }) {
   const open = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
+  const home = currentId === null
+  const goHome = () => dispatch({ type: 'close' })
+  const openP = (id: string) => dispatch({ type: 'open', patientId: id })
+  const mainDx = (p: Patient) => p.diseases.find((d) => d.status === '継続' && d.main)?.name ?? (p.encounters.length === 0 ? '初診' : '病名なし')
+
+  if (variant === 'chrome') {
+    const tab = (on: boolean) =>
+      `relative -mb-px flex h-10 max-w-60 shrink-0 items-center gap-2 rounded-t-xl px-3 text-sm transition-colors ${
+        on ? 'z-10 bg-page font-medium text-ink' : 'text-ink-2 hover:bg-white/60'
+      }`
+    return (
+      <div role="tablist" className="no-print flex shrink-0 items-end gap-0.5 overflow-x-auto bg-surface-2 px-2 pt-2">
+        <button role="tab" aria-selected={home} onClick={goHome} className={tab(home)}>
+          <Icon name="groups" fill={home} size={18} />
+          受付一覧 <span className="text-xs text-ink-2">{open.length}</span>
+        </button>
+        {open.map((p, i) => {
+          const on = p.id === currentId
+          const prevOn = i === 0 ? home : open[i - 1].id === currentId
+          return (
+            <button key={p.id} role="tab" aria-selected={on} onClick={() => openP(p.id)} className={tab(on)}>
+              {!on && !prevOn && <span className="absolute top-2.5 left-0 h-5 w-px bg-outline-var" />}
+              <PatientIcon patient={p} size={20} />
+              <span className="truncate">{p.name}</span>
+              <span className="text-xs text-ink-2">{ageSex(p)}</span>
+              {p.status === '診察中' && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
+  if (variant === 'pill') {
+    const tab = (on: boolean) =>
+      `flex h-9 shrink-0 items-center gap-2 rounded-full pr-4 pl-1.5 text-sm font-medium transition-colors ${
+        on ? 'bg-secondary-ctr text-on-secondary-ctr' : 'text-ink-2 hover:bg-ink/5'
+      }`
+    return (
+      <div role="tablist" className="no-print flex shrink-0 items-center gap-1 overflow-x-auto px-3 py-1.5">
+        <button role="tab" aria-selected={home} onClick={goHome} className={`${tab(home)} pl-3`}>
+          <Icon name="groups" fill={home} size={20} />
+          受付一覧 <span className="text-xs opacity-70">{open.length}</span>
+        </button>
+        <span className="mx-1 h-6 w-px bg-outline-var" />
+        {open.map((p) => {
+          const on = p.id === currentId
+          return (
+            <button key={p.id} role="tab" aria-selected={on} onClick={() => openP(p.id)} className={tab(on)}>
+              <PatientIcon patient={p} size={26} />
+              {p.name}
+              <span className="text-xs font-normal opacity-70">{ageSex(p)}</span>
+              {on && <Icon name="check" size={18} />}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
+  if (variant === 'card') {
+    const tab = (on: boolean, w = 'w-52') =>
+      `flex h-14 ${w} shrink-0 items-center gap-2.5 rounded-2xl px-3 text-left transition-colors ${
+        on ? 'bg-primary-ctr text-on-primary-ctr ring-2 ring-primary' : 'bg-white text-ink hover:bg-surface-2'
+      }`
+    return (
+      <div role="tablist" className="no-print flex shrink-0 items-center gap-2 overflow-x-auto px-3 py-2">
+        <button role="tab" aria-selected={home} onClick={goHome} className={tab(home, 'w-36')}>
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2">
+            <Icon name="groups" fill={home} />
+          </span>
+          <span>
+            <span className="block text-sm font-medium">受付一覧</span>
+            <span className="block text-xs text-ink-2">待ち {open.length}人</span>
+          </span>
+        </button>
+        {open.map((p) => {
+          const on = p.id === currentId
+          return (
+            <button key={p.id} role="tab" aria-selected={on} onClick={() => openP(p.id)} className={tab(on)}>
+              <PatientIcon patient={p} size={36} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline gap-1.5">
+                  <span className="truncate text-sm font-medium">{p.name}</span>
+                  <span className="shrink-0 text-[11px] text-ink-2">{ageSex(p)}</span>
+                </span>
+                <span className="flex items-center gap-1 text-xs text-ink-2">
+                  <span className={`rounded px-1 text-[10px] font-medium ${STATUS_STYLE[p.status]}`}>{p.status}</span>
+                  <span className="truncate">{mainDx(p)}</span>
+                </span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
   const tab = (active: boolean) =>
     `relative flex h-12 shrink-0 items-center gap-2 px-4 text-sm font-medium transition-colors hover:bg-ink/5 ${active ? 'text-primary' : 'text-ink-2'}`
   const Indicator = ({ on }: { on: boolean }) => (on ? <span className="absolute inset-x-2 bottom-0 h-[3px] rounded-t-full bg-primary" /> : null)
   return (
     <div role="tablist" className="no-print flex shrink-0 items-end overflow-x-auto border-b border-outline-var px-3">
-      <button role="tab" aria-selected={currentId === null} onClick={() => dispatch({ type: 'close' })} className={tab(currentId === null)}>
-        <Icon name="groups" fill={currentId === null} />
+      <button role="tab" aria-selected={home} onClick={goHome} className={tab(home)}>
+        <Icon name="groups" fill={home} />
         受付一覧
-        <span className={`rounded-full px-1.5 text-[11px] ${currentId === null ? 'bg-primary text-white' : 'bg-surface-2 text-ink-2'}`}>{open.length}</span>
-        <Indicator on={currentId === null} />
+        <span className={`rounded-full px-1.5 text-[11px] ${home ? 'bg-primary text-white' : 'bg-surface-2 text-ink-2'}`}>{open.length}</span>
+        <Indicator on={home} />
       </button>
       {open.map((p) => (
-        <button key={p.id} role="tab" aria-selected={p.id === currentId} onClick={() => dispatch({ type: 'open', patientId: p.id })} className={`${tab(p.id === currentId)} max-w-64`}>
+        <button key={p.id} role="tab" aria-selected={p.id === currentId} onClick={() => openP(p.id)} className={`${tab(p.id === currentId)} max-w-64`}>
           <PatientIcon patient={p} size={24} />
           <span className="truncate">{p.name}</span>
           <span className="text-xs font-normal text-ink-2">{ageSex(p)}</span>
@@ -315,6 +476,60 @@ function PatientTabs({ patients, currentId, dispatch }: { patients: Patient[]; c
           <Indicator on={p.id === currentId} />
         </button>
       ))}
+    </div>
+  )
+}
+
+// 確定前の病名漏れチェック。候補をその場で追加でき、解消すると確定ボタンが主ボタンになる
+function DiseaseCheck({ patient, draft, dispatch, onBack, onConfirm }: { patient: Patient; draft: Draft; dispatch: (a: Action) => void; onBack: () => void; onConfirm: (force?: boolean) => void }) {
+  const left = unlinkedOrders(patient, draft)
+  const done = left.length === 0
+  return (
+    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30" onMouseDown={onBack}>
+      <div className="w-[560px] max-w-[92vw] rounded-[28px] bg-surface-1 p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-2 flex flex-col items-center gap-2 text-center">
+          <Icon name={done ? 'task_alt' : 'link_off'} size={28} className={done ? 'text-rx' : 'text-error'} />
+          <h2 className="text-2xl">{done ? '病名の漏れはありません' : `病名が紐付いていないオーダーが ${left.length}件`}</h2>
+        </div>
+        <p className="mb-4 text-center text-sm text-ink-2">
+          {done ? 'このまま確定できます。' : '適応する病名がないと、レセプト審査で査定・返戻の対象になります。候補を押すと病名に追加されます。'}
+        </p>
+        {!done && (
+          <div className="space-y-2">
+            {left.map((o) => (
+              <div key={o.item.id} className="rounded-2xl bg-white px-4 py-3">
+                <div className="mb-1.5 flex items-center gap-2 text-sm font-medium">
+                  <Icon name={o.kind === 'rx' ? 'medication' : 'biotech'} size={18} className={o.kind === 'rx' ? 'text-rx' : 'text-lab'} />
+                  {o.item.name}
+                </div>
+                <DiseaseLink patient={patient} order={o} dispatch={dispatch} />
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-5 flex justify-end gap-2">
+          {done ? (
+            <>
+              <button onClick={onBack} className="btn btn-text">
+                戻る
+              </button>
+              <button onClick={() => onConfirm()} className="btn btn-filled">
+                <Icon name="check" size={20} />
+                確定して会計へ <span className="kbd">⌘Enter</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => onConfirm(true)} className="btn btn-text text-ink-2">
+                このまま確定
+              </button>
+              <button onClick={onBack} className="btn btn-filled">
+                戻って修正 <span className="kbd">Esc</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
