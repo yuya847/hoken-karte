@@ -24,7 +24,25 @@ const ICONS = {
   image: 'Symbol: a white chest X-ray film showing ribs. Background: cyan #06b6d4.',
 }
 
-const ids = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(ICONS)
+// 患者アイコン（性別×年齢帯）。pt-<m|f>-<band>
+const AVATAR =
+  'A flat minimal avatar icon of a Japanese person, head and shoulders, friendly neutral expression, ' +
+  'simple shapes, circular background filling the canvas, no text, legible at 32 pixels.'
+const PEOPLE = {
+  infant: ['a toddler boy about 2 years old', 'a toddler girl about 2 years old'],
+  child: ['an elementary school boy about 10 years old', 'an elementary school girl about 10 years old'],
+  young: ['a young man in his late 20s', 'a young woman in her late 20s'],
+  middle: ['a middle-aged man about 50 years old', 'a middle-aged woman about 50 years old'],
+  senior: ['an elderly man about 75 years old with grey hair', 'an elderly woman about 75 years old with grey hair'],
+}
+for (const [band, [m, f]] of Object.entries(PEOPLE)) {
+  ICONS[`pt-m-${band}`] = { full: `${AVATAR} Subject: ${m}. Background: light blue #bfdbfe.` }
+  ICONS[`pt-f-${band}`] = { full: `${AVATAR} Subject: ${f}. Background: light pink #fbcfe8.` }
+}
+
+// 引数なし: 全部。'pt' なら患者アイコンだけ。
+const args = process.argv.slice(2)
+const ids = args.length === 0 ? Object.keys(ICONS) : args[0] === 'pt' ? Object.keys(ICONS).filter((k) => k.startsWith('pt-')) : args
 await mkdir(new URL('../src/assets/icons/', import.meta.url), { recursive: true })
 
 for (const id of ids) {
@@ -36,7 +54,7 @@ for (const id of ids) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: `${STYLE} ${ICONS[id]}` }] }],
+      contents: [{ parts: [{ text: typeof ICONS[id] === 'string' ? `${STYLE} ${ICONS[id]}` : ICONS[id].full }] }],
       generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '1:1' } },
     }),
   })

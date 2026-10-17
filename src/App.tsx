@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { CommandPalette, type Command } from './CommandPalette'
-import { DISEASES, DRUGS, SETS, TESTS, age } from './data'
+import { DISEASES, DRUGS, SETS, TESTS } from './data'
 import { LeftPane } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { ImageViewer } from './ImageViewer'
 import { TestPicker } from './TestPicker'
+import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
 import { OrderRail, type RailId } from './OrderRail'
 import { ChartEditor, PastEditor, type FocusReq } from './RightPane'
 import { emptyDraft, loadState, reducer, saveState, type Action, type State } from './store'
@@ -162,18 +163,7 @@ export default function App() {
           保険診療カルテ
         </button>
         <span className="rounded bg-slate-700 px-1.5 text-xs">試作・架空データ</span>
-        <div className="flex flex-1 gap-1.5 overflow-x-auto">
-          {state.patients.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => dispatch({ type: 'open', patientId: p.id })}
-              disabled={p.status === '会計待ち' || p.status === '済'}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs ${STATUS_STYLE[p.status]} ${p.id === state.currentId ? 'ring-2 ring-white' : ''}`}
-            >
-              {p.name}・{p.status}
-            </button>
-          ))}
-        </div>
+        <span className="flex-1" />
         {state.session && (
           <div className="flex gap-3 font-mono text-sm">
             <span className={elapsed > GOAL_SECONDS ? 'text-red-300' : 'text-emerald-300'}>⏱ {fmtSec(elapsed)}</span>
@@ -185,16 +175,20 @@ export default function App() {
         </button>
       </header>
 
+      <PatientTabs patients={state.patients} currentId={state.currentId} dispatch={dispatch} />
+
       {patient ? (
         <>
           <div className="no-print flex items-center gap-4 border-b border-slate-200 bg-white px-4 py-2">
+            <PatientIcon patient={patient} size={40} />
             <div>
-              <span className="text-lg font-bold">{patient.name}</span>
-              <span className="ml-2 text-sm text-slate-500">{patient.kana}</span>
+              <div>
+                <span className="text-lg font-bold">{patient.name}</span>
+                <span className="ml-2 text-sm text-slate-500">{patient.kana}</span>
+              </div>
+              <div className="text-xs text-slate-500">{birthLabel(patient.birth)}生</div>
             </div>
-            <span className="text-sm">
-              {age(patient.birth)}歳 {patient.sex}
-            </span>
+            <span className="text-base font-semibold">{ageSex(patient)}</span>
             <span className="rounded bg-slate-100 px-2 py-0.5 text-sm">
               {patient.insurance} {Math.round(patient.burden * 10)}割
             </span>
@@ -262,6 +256,37 @@ export default function App() {
   )
 }
 
+// ブラウザのタブのように、受付一覧と診察対象の患者を切り替える
+function PatientTabs({ patients, currentId, dispatch }: { patients: Patient[]; currentId: string | null; dispatch: (a: Action) => void }) {
+  const open = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
+  const tab = (active: boolean) =>
+    `-mb-px flex shrink-0 items-center gap-2 rounded-t-lg border px-3 py-1.5 text-sm ${
+      active ? 'border-slate-300 border-b-white bg-white font-semibold text-slate-900' : 'border-transparent text-slate-600 hover:bg-slate-50'
+    }`
+  return (
+    <div role="tablist" className="no-print flex items-end gap-0.5 overflow-x-auto border-b border-slate-300 bg-slate-200 px-2 pt-1.5">
+      <button role="tab" aria-selected={currentId === null} onClick={() => dispatch({ type: 'close' })} className={tab(currentId === null)}>
+        受付一覧
+        <span className="rounded-full bg-slate-300 px-1.5 text-xs font-normal text-slate-700">{open.length}</span>
+      </button>
+      {open.map((p) => (
+        <button
+          key={p.id}
+          role="tab"
+          aria-selected={p.id === currentId}
+          onClick={() => dispatch({ type: 'open', patientId: p.id })}
+          className={`${tab(p.id === currentId)} max-w-60`}
+        >
+          <PatientIcon patient={p} size={22} />
+          <span className="truncate">{p.name}</span>
+          <span className="text-xs font-normal text-slate-500">{ageSex(p)}</span>
+          <span className={`rounded px-1 text-[10px] font-normal ${STATUS_STYLE[p.status]}`}>{p.status}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function Reception({ patients, dispatch }: { patients: Patient[]; dispatch: (a: Action) => void }) {
   return (
     <main className="flex-1 overflow-y-auto p-6">
@@ -272,7 +297,7 @@ function Reception({ patients, dispatch }: { patients: Patient[]; dispatch: (a: 
             <tr>
               <th className="px-3 py-2">状態</th>
               <th className="px-3 py-2">氏名</th>
-              <th className="px-3 py-2">年齢</th>
+              <th className="px-3 py-2">年齢・性別／生年月日</th>
               <th className="px-3 py-2">保険</th>
               <th className="px-3 py-2">今日の内容</th>
               <th className="px-3 py-2"></th>
@@ -287,8 +312,19 @@ function Reception({ patients, dispatch }: { patients: Patient[]; dispatch: (a: 
                   <td className="px-3 py-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_STYLE[p.status]}`}>{p.status}</span>
                   </td>
-                  <td className="px-3 py-2 font-medium">{p.name}</td>
-                  <td className="px-3 py-2">{age(p.birth)}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <PatientIcon patient={p} size={28} />
+                      <div>
+                        <div className="font-medium">{p.name}</div>
+                        <div className="text-xs text-slate-500">{p.kana}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <div>{ageSex(p)}</div>
+                    <div className="text-xs text-slate-500">{birthLabel(p.birth)}生</div>
+                  </td>
                   <td className="px-3 py-2">
                     {p.insurance} {Math.round(p.burden * 10)}割
                   </td>
