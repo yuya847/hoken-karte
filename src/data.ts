@@ -30,15 +30,40 @@ export const DRUGS: Drug[] = [
   { id: 'd15', name: 'フェブキソスタット錠20mg', kana: 'ふぇぶきそすたっと', alias: 'febu', unit: '錠', dose: 1, usage: '1日1回朝食後', days: 28 },
 ]
 
-export const TESTS: { code: string; name: string; kana: string; alias: string }[] = [
-  { code: 't01', name: '血算（CBC）', kana: 'けっさん', alias: 'cbc' },
-  { code: 't02', name: 'HbA1c', kana: 'へもぐろびんえーわんしー', alias: 'a1c' },
-  { code: 't03', name: '生化学（肝・腎・脂質）', kana: 'せいかがく', alias: 'seika' },
-  { code: 't04', name: 'CRP', kana: 'しーあーるぴー', alias: 'crp' },
-  { code: 't05', name: '尿一般', kana: 'にょういっぱん', alias: 'nyo' },
-  { code: 't06', name: '心電図（12誘導）', kana: 'しんでんず', alias: 'ecg' },
-  { code: 't07', name: '胸部X線', kana: 'きょうぶえっくすせん', alias: 'xp' },
-  { code: 't08', name: 'インフルエンザ抗原', kana: 'いんふるえんざ', alias: 'flu' },
+export const TEST_GROUPS = ['血液学', '生化学', '免疫・血清', '尿・便', '生理', '画像'] as const
+export type TestGroup = (typeof TEST_GROUPS)[number]
+
+export const TESTS: { code: string; name: string; kana: string; alias: string; group: TestGroup }[] = [
+  { code: 't01', name: '血算（CBC）', kana: 'けっさん', alias: 'cbc', group: '血液学' },
+  { code: 't09', name: '白血球分画', kana: 'はっけっきゅうぶんかく', alias: 'diff', group: '血液学' },
+  { code: 't02', name: 'HbA1c', kana: 'へもぐろびんえーわんしー', alias: 'a1c', group: '血液学' },
+  { code: 't10', name: 'PT-INR', kana: 'ぷろとろんびんじかん', alias: 'inr', group: '血液学' },
+  { code: 't11', name: 'D-ダイマー', kana: 'でぃーだいまー', alias: 'dd', group: '血液学' },
+  { code: 't03', name: '生化学（肝・腎・脂質）', kana: 'せいかがく', alias: 'seika', group: '生化学' },
+  { code: 't12', name: 'AST・ALT・γ-GTP', kana: 'かんきのう', alias: 'ast alt ggt', group: '生化学' },
+  { code: 't13', name: 'BUN・Cre・eGFR', kana: 'じんきのう', alias: 'bun cre egfr', group: '生化学' },
+  { code: 't14', name: '尿酸', kana: 'にょうさん', alias: 'ua', group: '生化学' },
+  { code: 't15', name: 'Na・K・Cl', kana: 'でんかいしつ', alias: 'na k cl', group: '生化学' },
+  { code: 't16', name: 'TC・TG・HDL・LDL', kana: 'ししつ', alias: 'tc tg hdl ldl', group: '生化学' },
+  { code: 't17', name: '血糖', kana: 'けっとう', alias: 'bs glu', group: '生化学' },
+  { code: 't18', name: 'CK', kana: 'しーけー', alias: 'ck cpk', group: '生化学' },
+  { code: 't04', name: 'CRP', kana: 'しーあーるぴー', alias: 'crp', group: '免疫・血清' },
+  { code: 't19', name: 'BNP', kana: 'びーえぬぴー', alias: 'bnp', group: '免疫・血清' },
+  { code: 't20', name: 'TSH・FT4', kana: 'こうじょうせん', alias: 'tsh ft4', group: '免疫・血清' },
+  { code: 't21', name: 'HBs抗原・HCV抗体', kana: 'かんえん', alias: 'hbs hcv', group: '免疫・血清' },
+  { code: 't22', name: 'PSA', kana: 'ぴーえすえー', alias: 'psa', group: '免疫・血清' },
+  { code: 't08', name: 'インフルエンザ抗原', kana: 'いんふるえんざ', alias: 'flu', group: '免疫・血清' },
+  { code: 't23', name: 'SARS-CoV-2抗原', kana: 'ころな', alias: 'covid', group: '免疫・血清' },
+  { code: 't05', name: '尿一般', kana: 'にょういっぱん', alias: 'nyo', group: '尿・便' },
+  { code: 't24', name: '尿沈渣', kana: 'にょうちんさ', alias: 'chinsa', group: '尿・便' },
+  { code: 't25', name: '尿中アルブミン', kana: 'にょうちゅうあるぶみん', alias: 'ualb', group: '尿・便' },
+  { code: 't26', name: '便潜血（2回法）', kana: 'べんせんけつ', alias: 'fobt', group: '尿・便' },
+  { code: 't06', name: '心電図（12誘導）', kana: 'しんでんず', alias: 'ecg', group: '生理' },
+  { code: 't27', name: 'ABI', kana: 'えーびーあい', alias: 'abi', group: '生理' },
+  { code: 't28', name: '呼吸機能検査', kana: 'こきゅうきのう', alias: 'spiro', group: '生理' },
+  { code: 't29', name: '腹部超音波', kana: 'ふくぶえこー', alias: 'us echo', group: '生理' },
+  { code: 't07', name: '胸部X線', kana: 'きょうぶえっくすせん', alias: 'xp', group: '画像' },
+  { code: 't30', name: '腹部X線', kana: 'ふくぶえっくすせん', alias: 'axr', group: '画像' },
 ]
 
 export const DISEASES: { name: string; kana: string; alias: string }[] = [

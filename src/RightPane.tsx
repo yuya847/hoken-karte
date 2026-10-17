@@ -103,7 +103,15 @@ export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) 
         </div>
 
         <div>
-          <div className="mb-1 text-sm font-semibold text-violet-700">検査</div>
+          <div className="mb-1 flex items-center">
+            <span className="flex-1 text-sm font-semibold text-violet-700">検査</span>
+            <button
+              onClick={() => dispatch({ type: 'mode', mode: { kind: 'tests' } })}
+              className="rounded bg-violet-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-violet-700"
+            >
+              項目から選ぶ
+            </button>
+          </div>
           <OrderSearch
             items={TEST_ITEMS}
             tone="violet"

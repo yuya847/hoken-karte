@@ -23,6 +23,8 @@ export type Action =
   | { type: 'removeRx'; id: string }
   | { type: 'addTest'; code: string }
   | { type: 'removeTest'; id: string }
+  | { type: 'toggleTest'; code: string }
+  | { type: 'setTests'; codes: string[] }
   | { type: 'addDisease'; name: string }
   | { type: 'updateDisease'; id: string; patch: Partial<Disease> }
   | { type: 'applySet'; setId: string }
@@ -129,6 +131,12 @@ export function reducer(s: State, a: Action): State {
       return mapDraft(s, (d) => ({ ...d, rx: d.rx.filter((r) => r.id !== a.id) }))
     case 'addTest':
       return mapDraft(s, (d) => ({ ...d, tests: mergeTests(d.tests, [testFromCode(a.code)]) }))
+    case 'toggleTest':
+      return mapDraft(s, (d) =>
+        d.tests.some((t) => t.code === a.code) ? { ...d, tests: d.tests.filter((t) => t.code !== a.code) } : { ...d, tests: mergeTests(d.tests, [testFromCode(a.code)]) },
+      )
+    case 'setTests':
+      return mapDraft(s, (d) => ({ ...d, tests: mergeTests([], a.codes.map(testFromCode)) }))
     case 'removeTest':
       return mapDraft(s, (d) => ({ ...d, tests: d.tests.filter((t) => t.id !== a.id) }))
     case 'addDisease': {

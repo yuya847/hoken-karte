@@ -4,6 +4,7 @@ import { DISEASES, DRUGS, SETS, TESTS, age } from './data'
 import { LeftPane } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { ImageViewer } from './ImageViewer'
+import { TestPicker } from './TestPicker'
 import { OrderRail, type RailId } from './OrderRail'
 import { ChartEditor, PastEditor, type FocusReq } from './RightPane'
 import { emptyDraft, loadState, reducer, saveState, type Action, type State } from './store'
@@ -81,6 +82,7 @@ export default function App() {
   const selectRail = (id: RailId) => {
     const s = stateRef.current
     if (id === 'letter') return toggleLetter()
+    if (id === 'test') return dispatch({ type: 'mode', mode: s.mode.kind === 'tests' ? { kind: 'chart' } : { kind: 'tests' } })
     if (id === 'image') return dispatch({ type: 'mode', mode: s.mode.kind === 'images' ? { kind: 'chart' } : { kind: 'images' } })
     focusOrder(id)
   }
@@ -99,7 +101,7 @@ export default function App() {
       }
       if (e.key === 'Escape') {
         setMetricsOpen(false)
-        if (s.mode.kind === 'edit-past' || s.mode.kind === 'images') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
+        if (s.mode.kind === 'edit-past' || s.mode.kind === 'images' || s.mode.kind === 'tests') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
         return
       }
       if (mod && k === 'k') return hit(() => setPalette((v) => !v))
@@ -222,6 +224,8 @@ export default function App() {
             <div className="min-h-0">
               {mode.kind === 'letter' ? (
                 <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
+              ) : mode.kind === 'tests' ? (
+                <TestPicker patient={patient} draft={draft} dispatch={dispatch} />
               ) : mode.kind === 'images' ? (
                 <ImageViewer key={patient.id} patientName={patient.name} />
               ) : editing ? (
@@ -230,7 +234,7 @@ export default function App() {
                 <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} focusReq={focusReq} />
               )}
             </div>
-            <OrderRail active={mode.kind === 'letter' ? 'letter' : mode.kind === 'images' ? 'image' : null} onSelect={selectRail} />
+            <OrderRail active={mode.kind === 'letter' ? 'letter' : mode.kind === 'images' ? 'image' : mode.kind === 'tests' ? 'test' : null} onSelect={selectRail} />
           </main>
         </>
       ) : (

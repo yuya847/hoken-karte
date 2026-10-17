@@ -91,4 +91,5 @@ export type RightMode =
   | { kind: 'chart' }
   | { kind: 'letter' }
   | { kind: 'images' }
+  | { kind: 'tests' }
   | { kind: 'edit-past'; encounterId: string }
