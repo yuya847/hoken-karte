@@ -1,5 +1,5 @@
 import { DISEASES, SETS, initialPatients, rxFromDrug, testFromCode, today, uid } from './data'
-import { diseaseLabel, linkedDiseases } from './orders'
+import { applyPlan, planDiseases } from './orders'
 import { parseVitals } from './vitals'
 import type { Disease, Draft, Encounter, Patient, RightMode, RxItem, SessionMetric, TestOrder, Vitals } from './types'
 
@@ -28,6 +28,7 @@ export type Action =
   | { type: 'setTests'; codes: string[] }
   | { type: 'addDisease'; name: string; suspected?: boolean }
   | { type: 'updateDisease'; id: string; patch: Partial<Disease> }
+  | { type: 'dxChoice'; orderId: string; name: string }
   | { type: 'applySet'; setId: string }
   | { type: 'letter'; patch: Partial<NonNullable<Draft['letter']>> | null }
   | { type: 'mode'; mode: RightMode }
@@ -152,17 +153,19 @@ export function reducer(s: State, a: Action): State {
       })
     }
     case 'updateDisease':
-      return mapPatient(s, (p) => ({ ...p, diseases: p.diseases.map((x) => (x.id === a.id ? { ...x, ...a.patch } : x)) }))
+      // 手で直したら自動の印は外す
+      return mapPatient(s, (p) => ({ ...p, diseases: p.diseases.map((x) => (x.id === a.id ? { ...x, ...a.patch, auto: undefined } : x)) }))
+    case 'dxChoice':
+      return mapDraft(s, (d) => ({ ...d, dxChoice: { ...d.dxChoice, [a.orderId]: a.name } }))
     case 'applySet': {
       const set = SETS.find((x) => x.id === a.setId)
       if (!set) return s
-      let next = mapDraft(s, (d) => ({
+      // 病名はセットに持たせず、オーダーから確定時に自動で決める
+      return mapDraft(s, (d) => ({
         ...d,
         rx: mergeRx(d.rx, set.drugs.map((id) => rxFromDrug(id))),
         tests: mergeTests(d.tests, set.tests.map(testFromCode)),
       }))
-      if (set.disease) next = reducer(next, { type: 'addDisease', name: set.disease })
-      return next
     }
     case 'letter':
       return mapDraft(s, (d) => ({
@@ -196,15 +199,18 @@ export function reducer(s: State, a: Action): State {
       const p = s.patients.find((x) => x.id === s.currentId)
       if (!p) return s
       const d = s.drafts[p.id] ?? emptyDraft()
+      const plan = planDiseases(p, d)
+      const dx = applyPlan(p, plan)
       const encounter: Encounter = {
         id: uid('enc'),
         date: today(),
         kind: p.encounters.length === 0 ? '初診' : '再診',
         vitals: parseVitals(d.text),
         text: d.text,
-        rx: d.rx.map((item) => ({ ...item, diseases: linkedDiseases(p, { kind: 'rx', item }).map(diseaseLabel) })),
-        tests: d.tests.map((item) => ({ ...item, diseases: linkedDiseases(p, { kind: 'test', item }).map(diseaseLabel) })),
+        rx: d.rx.map((item) => ({ ...item, diseases: plan.links[item.id] ?? [] })),
+        tests: d.tests.map((item) => ({ ...item, diseases: plan.links[item.id] ?? [] })),
         letters: d.letter ? [d.letter] : [],
+        dxLog: dx.log,
         version: 1,
         history: [],
       }
@@ -222,7 +228,7 @@ export function reducer(s: State, a: Action): State {
       delete drafts[p.id]
       const done: State = {
         ...s,
-        patients: s.patients.map((x) => (x.id === p.id ? { ...x, status: '会計待ち', encounters: [...x.encounters, encounter] } : x)),
+        patients: s.patients.map((x) => (x.id === p.id ? { ...x, status: '会計待ち', diseases: dx.diseases, encounters: [...x.encounters, encounter] } : x)),
         drafts,
         metrics: metric ? [...s.metrics, metric] : s.metrics,
         session: null,

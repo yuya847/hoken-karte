@@ -29,6 +29,8 @@ export type Disease = {
   main: boolean
   status: DiseaseStatus
   suspected?: boolean
+  end?: string // 転帰日
+  auto?: string // 自動で追加・変更したときの理由
 }
 
 export type Letter = {
@@ -51,6 +53,7 @@ export type Encounter = {
   rx: RxItem[]
   tests: TestOrder[]
   letters: Letter[]
+  dxLog?: string[] // 確定時に自動で行った病名の変更（監査用の記録）
   version: number
   history: Revision[]
 }
@@ -77,6 +80,7 @@ export type Draft = {
   rx: RxItem[]
   tests: TestOrder[]
   letter: Letter | null
+  dxChoice?: Record<string, string> // オーダーID → 選び直した病名
   savedAt: string | null
 }
 
@@ -94,4 +98,5 @@ export type RightMode =
   | { kind: 'letter' }
   | { kind: 'images' }
   | { kind: 'tests' }
+  | { kind: 'diseases' }
   | { kind: 'edit-past'; encounterId: string }

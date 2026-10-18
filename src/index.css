@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* iPadなどタッチ操作の端末 */
+@custom-variant touch (@media (pointer: coarse));
+
 /* Material Design 3 に沿った配色。色の意味：primary=主操作、処方=緑、検査=紫、病名=青、文書=橙 */
 @theme {
   --color-primary: #0b57d0;
@@ -29,6 +32,9 @@
 }
 
 html, body, #root { height: 100%; }
+#root { height: 100dvh; }
+html { -webkit-text-size-adjust: 100%; }
+button, select { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -73,6 +79,17 @@ body {
   .card { @apply rounded-3xl bg-white; }
   .label { @apply text-xs font-medium text-ink-2; }
   .kbd { @apply rounded border border-current/30 px-1 font-sans text-[11px] opacity-70; }
+}
+
+/* タッチ端末では押す場所を広げ、入力欄は16px以上にしてiOSの自動ズームを防ぐ。キー表示は出さない */
+@media (pointer: coarse) {
+  .btn { height: 44px; }
+  .btn-sm { height: 40px; }
+  .icon-btn { height: 44px; width: 44px; }
+  .icon-btn-sm { height: 40px; width: 40px; }
+  .chip { height: 40px; }
+  .field, textarea, input, select { font-size: 16px; }
+  .kbd { display: none; }
 }
 
 @media print {

@@ -1,21 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { DISEASES, DRUGS, SETS, TESTS } from './data'
+import { DRUGS, SETS, TESTS } from './data'
 import { vitalsLine } from './LeftPane'
 import { Icon } from './Icon'
-import { diseaseLabel, linkedDiseases, suggestions, type OrderRef } from './orders'
+import { DxStrip } from './DiseasePanel'
 import { OrderSearch, type SearchItem } from './OrderSearch'
 import type { Action } from './store'
 import type { Draft, Encounter, Patient } from './types'
 import { parseVitals } from './vitals'
 
-export type FocusReq = { target: 'order' | 'disease'; n: number } | null
+export type FocusReq = { n: number } | null
 
-// 処方・検査・病名・セットをひとつの検索欄で引く
+// 処方・検査・セットをひとつの検索欄で引く。病名はオーダーから自動で付くのでここには出さない
 const ORDER_ITEMS: SearchItem[] = [
   ...SETS.map((x) => ({ id: `set:${x.id}`, label: x.name, keys: `${x.kana} ${x.alias}`, icon: 'playlist_add', iconClass: 'text-primary', tag: 'セット' })),
   ...DRUGS.map((d) => ({ id: `rx:${d.id}`, label: d.name, sub: `${d.dose}${d.unit} ${d.usage} ${d.days}日`, keys: `${d.kana} ${d.alias}`, icon: 'medication', iconClass: 'text-rx', tag: '処方' })),
   ...TESTS.map((t) => ({ id: `test:${t.code}`, label: t.name, keys: `${t.kana} ${t.alias}`, icon: 'biotech', iconClass: 'text-lab', tag: '検査' })),
-  ...DISEASES.map((x) => ({ id: `dx:${x.name}`, label: x.name, keys: `${x.kana} ${x.alias}`, icon: 'diagnosis', iconClass: 'text-dx', tag: '病名' })),
 ]
 
 const VITALS_HINT = 'BP 128/78　HR 72　BT 36.5　SpO2 98　BW 62.4 のように書くとバイタルとして読み取ります'
@@ -39,53 +38,16 @@ function SectionTitle({ icon, label, tone, children }: { icon: string; label: st
   )
 }
 
-// オーダーに紐付いた病名。なければ警告と追加候補を出す
-export function DiseaseLink({ patient, order, dispatch }: { patient: Patient; order: OrderRef; dispatch: (a: Action) => void }) {
-  const linked = linkedDiseases(patient, order)
-  if (linked.length > 0)
-    return (
-      <div className="flex flex-wrap items-center gap-1 text-xs text-dx">
-        <Icon name="link" size={16} />
-        {linked.map((d) => (
-          <span key={d.id} className="rounded-md bg-white/80 px-1.5 py-0.5">
-            {diseaseLabel(d)}
-          </span>
-        ))}
-      </div>
-    )
-  return (
-    <div className="flex flex-wrap items-center gap-1 text-xs">
-      <span className="flex items-center gap-1 rounded-md bg-error-ctr px-1.5 py-0.5 font-medium text-error">
-        <Icon name="link_off" size={16} />
-        適応病名なし
-      </span>
-      {suggestions(order).map((sg) => (
-        <button
-          key={sg.name}
-          onClick={() => dispatch({ type: 'addDisease', name: sg.name, suspected: sg.suspected })}
-          className="flex items-center gap-0.5 rounded-md border border-outline-var bg-white px-1.5 py-0.5 text-ink-2 hover:border-primary hover:text-primary"
-        >
-          <Icon name="add" size={14} />
-          {diseaseLabel(sg)}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) {
   const textRef = useRef<HTMLTextAreaElement>(null)
   const orderRef = useRef<HTMLInputElement>(null)
-  const diseaseRef = useRef<HTMLDivElement>(null)
   useEffect(() => textRef.current?.focus(), [])
   useEffect(() => {
     if (!focusReq) return
-    if (focusReq.target === 'disease') diseaseRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    else orderRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    orderRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
     orderRef.current?.focus({ preventScroll: true })
   }, [focusReq])
 
-  const active = patient.diseases.filter((d) => d.status === '継続')
   const detected = useMemo(() => vitalsLine(parseVitals(draft.text)), [draft.text])
   const empty = draft.rx.length === 0 && draft.tests.length === 0
 
@@ -93,7 +55,6 @@ export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) 
     const [kind, key] = [id.slice(0, id.indexOf(':')), id.slice(id.indexOf(':') + 1)]
     if (kind === 'rx') dispatch({ type: 'addRx', drugId: key })
     if (kind === 'test') dispatch({ type: 'addTest', code: key })
-    if (kind === 'dx') dispatch({ type: 'addDisease', name: key })
     if (kind === 'set') dispatch({ type: 'applySet', setId: key })
   }
 
@@ -136,7 +97,7 @@ export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) 
             検査を選ぶ
           </button>
         </SectionTitle>
-        <OrderSearch items={ORDER_ITEMS} inputRef={orderRef} placeholder="処方・検査・病名・セットを検索（例：amlo、a1c、こうけつ、kaze）⌘P" onPick={pick} />
+        <OrderSearch items={ORDER_ITEMS} inputRef={orderRef} placeholder="処方・検査・セットを検索（例：amlo、a1c、kaze）" onPick={pick} />
 
         <div className="mt-3 space-y-1.5">
           {empty && (
@@ -166,9 +127,6 @@ export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) 
                   <Icon name="close" size={18} />
                 </button>
               </div>
-              <div className="mt-1 pl-7">
-                <DiseaseLink patient={patient} order={{ kind: 'rx', item: r }} dispatch={dispatch} />
-              </div>
             </div>
           ))}
           {draft.tests.map((t) => (
@@ -180,51 +138,11 @@ export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) 
                   <Icon name="close" size={18} />
                 </button>
               </div>
-              <div className="mt-0.5 mb-0.5 pl-7">
-                <DiseaseLink patient={patient} order={{ kind: 'test', item: t }} dispatch={dispatch} />
-              </div>
             </div>
           ))}
         </div>
 
-        <div ref={diseaseRef} className="mt-5">
-          <div className="label mb-1.5 flex items-center gap-1">
-            <Icon name="diagnosis" size={16} className="text-dx" />
-            病名
-          </div>
-          <div className="space-y-1">
-            {patient.diseases.map((d) => (
-              <div key={d.id} className={`flex items-center gap-2 rounded-xl px-2 py-1 text-sm ${d.status === '継続' ? 'bg-dx-ctr/70' : 'bg-surface-1 text-ink-2'}`}>
-                <button
-                  onClick={() => dispatch({ type: 'updateDisease', id: d.id, patch: { main: !d.main } })}
-                  className={`icon-btn icon-btn-sm ${d.main ? 'text-primary' : 'text-outline'}`}
-                  title={d.main ? '主病名' : '主病名にする'}
-                >
-                  <Icon name="star" fill={d.main} size={20} />
-                </button>
-                <span className="flex-1">{diseaseLabel(d)}</span>
-                <button
-                  onClick={() => dispatch({ type: 'updateDisease', id: d.id, patch: { suspected: !d.suspected } })}
-                  className={`chip h-6 px-2 text-xs ${d.suspected ? 'chip-on' : ''}`}
-                  title="疑い病名の切り替え"
-                >
-                  疑い
-                </button>
-                <span className="text-xs text-ink-2">{d.start}〜</span>
-                <select
-                  value={d.status}
-                  onChange={(e) => dispatch({ type: 'updateDisease', id: d.id, patch: { status: e.target.value as typeof d.status } })}
-                  className="field field-sm w-auto rounded-lg text-xs"
-                >
-                  <option>継続</option>
-                  <option>治癒</option>
-                  <option>中止</option>
-                </select>
-              </div>
-            ))}
-            {active.length === 0 && <div className="text-sm text-ink-2">継続中の病名なし（検索欄から追加）</div>}
-          </div>
-        </div>
+        <DxStrip patient={patient} draft={draft} dispatch={dispatch} />
       </section>
     </div>
   )

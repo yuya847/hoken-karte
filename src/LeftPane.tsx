@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Icon } from './Icon'
-import { diseaseLabel } from './orders'
 import type { Encounter, Patient, Vitals } from './types'
 
 export type Filter = '全て' | '記載' | '処方' | '検査' | '文書'
@@ -39,7 +38,6 @@ type Props = {
 export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) {
   const [filter, setFilter] = useState<Filter>('全て')
   const list = [...patient.encounters].sort((a, b) => b.date.localeCompare(a.date))
-  const active = patient.diseases.filter((d) => d.status === '継続')
 
   return (
     <div className="flex h-full flex-col">
@@ -50,17 +48,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
             アレルギー：{patient.allergies.join('、')}
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="label mr-1">病名</span>
-          {active.length === 0 && <span className="text-sm text-ink-2">なし</span>}
-          {active.map((d) => (
-            <span key={d.id} className={`inline-flex h-7 items-center gap-1 rounded-lg px-2.5 text-[13px] ${d.main ? 'bg-dx-ctr font-medium text-dx' : 'bg-surface-1 text-ink-2'}`}>
-              {d.main && <Icon name="star" fill size={14} />}
-              {diseaseLabel(d)}
-            </span>
-          ))}
-        </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto">
           {FILTERS.map((f) => (
             <button key={f} onClick={() => setFilter(f)} className={`chip ${filter === f ? 'chip-on' : ''}`}>
               {filter === f && <Icon name="check" size={16} />}
@@ -93,7 +81,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
                 <span className="text-xs text-ink-2">{e.kind}</span>
                 {e.version > 1 && <span className="rounded-md bg-doc-ctr px-1.5 text-[11px] font-medium text-doc">訂正 v{e.version}</span>}
                 <span className="flex-1" />
-                <div className="flex gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+                <div className="flex gap-0.5 opacity-70 transition-opacity group-hover:opacity-100 touch:opacity-100">
                   {e.rx.length > 0 && (
                     <button onClick={() => onDo(e.id)} className="btn btn-sm btn-text px-2.5" title="この処方をDo">
                       <Icon name="replay" size={18} />
@@ -124,7 +112,6 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
                     <div key={r.id}>
                       {r.name} {r.dose}
                       {r.unit} {r.usage} {r.days}日
-                      {r.diseases && r.diseases.length > 0 && <span className="ml-1.5 text-xs text-dx">→ {r.diseases.join('、')}</span>}
                     </div>
                   ))}
                 </div>
@@ -137,7 +124,6 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
                       <span key={t.id}>
                         {i > 0 && '、'}
                         {t.name}
-                        {t.diseases && t.diseases.length > 0 && <span className="text-xs text-dx">（{t.diseases.join('・')}）</span>}
                       </span>
                     ))}
                   </span>

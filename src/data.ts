@@ -241,7 +241,8 @@ export const initialPatients = (): Patient[] => [
     burden: 0.3,
     allergies: [],
     status: '待ち',
-    diseases: [dis('逆流性食道炎', '2025-11-20', true)],
+    // 自動転帰の確認用：前回の急性疾患と、検査後に放置された疑い病名
+    diseases: [dis('逆流性食道炎', '2025-11-20', true), dis('急性胃炎', '2026-08-25'), { ...dis('貧血', '2026-08-25'), suspected: true }],
     encounters: [
       enc(42, {
         vitals: { sbp: 118, dbp: 72, hr: 68 },
