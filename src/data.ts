@@ -99,6 +99,29 @@ export const DISEASES: { name: string; kana: string; alias: string }[] = [
   { name: '慢性閉塞性肺疾患', kana: 'まんせいへいそくせいはいしっかん', alias: 'copd' },
 ]
 
+// 処方ウインドウで並べる薬効分類（試作用の簡易分類）
+export const DRUG_CLASSES = ['降圧薬', '糖尿病薬', '脂質異常症薬', '消化器', '呼吸器・感冒', '解熱鎮痛', 'アレルギー', '便秘', '痛風・高尿酸'] as const
+export const DRUG_CLASS: Record<string, (typeof DRUG_CLASSES)[number]> = {
+  d01: '降圧薬',
+  d02: '降圧薬',
+  d03: '糖尿病薬',
+  d04: '糖尿病薬',
+  d05: '脂質異常症薬',
+  d06: '脂質異常症薬',
+  d07: '消化器',
+  d08: '消化器',
+  d09: '呼吸器・感冒',
+  d10: '解熱鎮痛',
+  d11: '解熱鎮痛',
+  d12: 'アレルギー',
+  d13: 'アレルギー',
+  d14: '便秘',
+  d15: '痛風・高尿酸',
+}
+
+export const USAGES = ['1日1回朝食後', '1日1回夕食後', '1日1回就寝前', '1日2回朝夕食後', '1日3回毎食後', '発熱・疼痛時']
+export const DAY_PRESETS = [3, 5, 7, 14, 28, 56]
+
 // 適応病名の簡易対応表（試作用）。正式な適応・算定要件はPhase 3で医薬品・診療行為マスタから引く。
 // 処方は確定病名にだけ紐付け、検査は「疑い」病名にも紐付ける。
 export const DRUG_INDICATIONS: Record<string, string[]> = {

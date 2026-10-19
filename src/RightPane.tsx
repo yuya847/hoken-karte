@@ -8,8 +8,6 @@ import type { Action } from './store'
 import type { Draft, Encounter, Patient } from './types'
 import { parseVitals } from './vitals'
 
-export type FocusReq = { n: number } | null
-
 // 処方・検査・セットをひとつの検索欄で引く。病名はオーダーから自動で付くのでここには出さない
 const ORDER_ITEMS: SearchItem[] = [
   ...SETS.map((x) => ({ id: `set:${x.id}`, label: x.name, keys: `${x.kana} ${x.alias}`, icon: 'playlist_add', iconClass: 'text-primary', tag: 'セット' })),
@@ -23,7 +21,7 @@ type ChartProps = {
   patient: Patient
   draft: Draft
   dispatch: (a: Action) => void
-  focusReq: FocusReq
+  onOpenRx: () => void
 }
 
 function SectionTitle({ icon, label, tone, children }: { icon: string; label: string; tone: string; children?: React.ReactNode }) {
@@ -38,15 +36,10 @@ function SectionTitle({ icon, label, tone, children }: { icon: string; label: st
   )
 }
 
-export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) {
+export function ChartEditor({ patient, draft, dispatch, onOpenRx }: ChartProps) {
   const textRef = useRef<HTMLTextAreaElement>(null)
   const orderRef = useRef<HTMLInputElement>(null)
   useEffect(() => textRef.current?.focus(), [])
-  useEffect(() => {
-    if (!focusReq) return
-    orderRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    orderRef.current?.focus({ preventScroll: true })
-  }, [focusReq])
 
   const detected = useMemo(() => vitalsLine(parseVitals(draft.text)), [draft.text])
   const empty = draft.rx.length === 0 && draft.tests.length === 0
@@ -88,6 +81,10 @@ export function ChartEditor({ patient, draft, dispatch, focusReq }: ChartProps) 
 
       <section className="px-6 py-5">
         <SectionTitle icon="assignment" label="オーダー" tone="bg-surface-2 text-ink-2">
+          <button onClick={onOpenRx} className="btn btn-sm btn-tonal">
+            <Icon name="medication" size={18} />
+            処方 <span className="kbd">⌘P</span>
+          </button>
           <button onClick={() => dispatch({ type: 'do' })} className="btn btn-sm btn-tonal">
             <Icon name="replay" size={18} />
             Do処方 <span className="kbd">⌘D</span>
