@@ -11,18 +11,12 @@ import { OrderRail, type RailId } from './OrderRail'
 import { ChartEditor, PastEditor } from './RightPane'
 import { DiseasePanel } from './DiseasePanel'
 import { RxWindow } from './RxWindow'
+import { Desk, NAV, NavRail, type View } from './Desk'
 import { emptyDraft, loadState, reducer, saveState, type Action, type State } from './store'
-import type { Patient, QueueStatus } from './types'
+import type { Patient } from './types'
 
 const GOAL_SECONDS = 60
 const GOAL_OPS = 15
-
-const STATUS_STYLE: Record<QueueStatus, string> = {
-  待ち: 'bg-[#ffefc9] text-[#5c4300]',
-  診察中: 'bg-primary-ctr text-on-primary-ctr',
-  会計待ち: 'bg-rx-ctr text-rx',
-  済: 'bg-surface-2 text-ink-2',
-}
 
 const fmtSec = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
@@ -30,6 +24,7 @@ export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, loadState)
   const [palette, setPalette] = useState(false)
   const [metricsOpen, setMetricsOpen] = useState(false)
+  const [view, setView] = useState<View>('reception')
   const [rxOpen, setRxOpen] = useState(false)
   const rxRef = useRef(false)
   rxRef.current = rxOpen
@@ -233,142 +228,147 @@ export default function App() {
   const editing = patient && mode.kind === 'edit-past' ? patient.encounters.find((e) => e.id === mode.encounterId) : undefined
 
   return (
-    <div className="flex h-full flex-col bg-page">
-      <header className="no-print flex h-16 shrink-0 items-center gap-2 px-3">
-        <button onClick={() => dispatch({ type: 'close' })} className="flex items-center gap-2 rounded-full py-1 pr-4 pl-2 hover:bg-ink/5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white">
-            <Icon name="clinical_notes" fill size={22} />
-          </span>
-          <span className="hidden text-[22px] text-ink-2 lg:inline">保険診療カルテ</span>
-        </button>
-        <span className="hidden rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-2 xl:inline">試作・架空データ</span>
+    <div className="flex h-full bg-page">
+      <NavRail
+        view={patient ? null : view}
+        slim={!!patient}
+        onSelect={(v) => {
+          setView(v)
+          dispatch({ type: 'close' })
+        }}
+      />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="no-print flex h-16 shrink-0 items-center gap-2 pr-3">
+          <span className="hidden pr-2 text-[22px] text-ink-2 lg:inline">保険診療カルテ</span>
+          <span className="hidden rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-2 xl:inline">試作・架空データ</span>
 
-        <button
-          onClick={() => setPalette(true)}
-          className="mx-auto flex h-12 w-full max-w-[640px] items-center gap-3 rounded-full bg-surface-2 px-4 text-left text-ink-2 transition-colors hover:bg-surface-2/70 hover:shadow-sm"
-        >
-          <Icon name="search" size={22} />
-          <span className="flex-1 text-[15px]">薬・検査・病名・操作を検索</span>
-          <span className="kbd">⌘K</span>
-        </button>
+          <button
+            onClick={() => setPalette(true)}
+            className="mx-auto flex h-12 w-full max-w-[640px] items-center gap-3 rounded-full bg-surface-2 px-4 text-left text-ink-2 transition-colors hover:bg-surface-2/70 hover:shadow-sm"
+          >
+            <Icon name="search" size={22} />
+            <span className="flex-1 text-[15px]">薬・検査・病名・操作を検索</span>
+            <span className="kbd">⌘K</span>
+          </button>
 
-        {state.session && (
-          <div className="flex items-center gap-1.5 text-sm">
-            <span className={`flex h-8 items-center gap-1 rounded-lg px-2.5 font-medium ${elapsed > GOAL_SECONDS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`}>
-              <Icon name="timer" size={18} />
-              {fmtSec(elapsed)}
-            </span>
-            <span className={`flex h-8 items-center gap-1 rounded-lg px-2.5 font-medium ${ops > GOAL_OPS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`}>
-              <Icon name="ads_click" size={18} />
-              {ops}
-            </span>
-          </div>
+          {state.session && (
+            <div className="flex items-center gap-1.5 text-sm">
+              <span className={`flex h-8 items-center gap-1 rounded-lg px-2.5 font-medium ${elapsed > GOAL_SECONDS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`}>
+                <Icon name="timer" size={18} />
+                {fmtSec(elapsed)}
+              </span>
+              <span className={`flex h-8 items-center gap-1 rounded-lg px-2.5 font-medium ${ops > GOAL_OPS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`}>
+                <Icon name="ads_click" size={18} />
+                {ops}
+              </span>
+            </div>
+          )}
+          <button onClick={() => setMetricsOpen(true)} className="icon-btn" title="操作計測（⌘M）">
+            <Icon name="monitoring" />
+          </button>
+        </header>
+
+        <PatientTabs view={view} patients={state.patients} currentId={state.currentId} dispatch={dispatch} />
+
+        {patient ? (
+          <>
+            <div className="no-print flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
+              <PatientIcon patient={patient} size={48} />
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[22px] leading-7">{patient.name}</span>
+                  <span className="text-sm text-ink-2">{patient.kana}</span>
+                </div>
+                <div className="text-xs text-ink-2">{birthLabel(patient.birth)}生</div>
+              </div>
+              <span className="text-base font-medium">{ageSex(patient)}</span>
+              <span className="flex h-8 items-center gap-1 rounded-lg border border-outline-var px-3 text-[13px] text-ink-2">
+                <Icon name="badge" size={18} />
+                {patient.insurance} {Math.round(patient.burden * 10)}割
+              </span>
+              <span className="flex h-8 items-center rounded-lg border border-outline-var px-3 text-[13px] text-ink-2">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
+              <span className="flex-1" />
+              <span className={`hidden items-center gap-1 text-xs md:flex ${saveOk ? 'text-ink-2' : 'font-medium text-error'}`}>
+                <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={18} />
+                {saveOk ? (draft.savedAt ? `下書き保存 ${draft.savedAt}` : '下書きなし') : '下書きを保存できません'}
+              </span>
+              <button onClick={() => confirm()} className="btn btn-filled">
+                <Icon name="check" size={20} />
+                確定して会計へ <span className="kbd">⌘Enter</span>
+              </button>
+            </div>
+            <main className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-1 lg:flex-row">
+              <div className="no-print card min-h-0 shrink-0 basis-[34%] overflow-hidden lg:shrink lg:basis-0 lg:flex-[2]">
+                <LeftPane
+                  patient={patient}
+                  selectedId={editing?.id ?? null}
+                  onDo={(id) => dispatch({ type: 'do', encounterId: id })}
+                  onQuote={(text) =>
+                    mode.kind === 'letter'
+                      ? dispatch({
+                          type: 'letter',
+                          patch: {
+                            body: draft.letter?.body ? `${draft.letter.body}\n${text}` : text,
+                          },
+                        })
+                      : dispatch({ type: 'insertText', text })
+                  }
+                  onEdit={(id) =>
+                    dispatch({
+                      type: 'mode',
+                      mode: { kind: 'edit-past', encounterId: id },
+                    })
+                  }
+                />
+              </div>
+              <div className="flex min-h-0 flex-1 gap-2 lg:flex-[3]">
+                <div className="card min-h-0 flex-1 overflow-hidden">
+                  {mode.kind === 'letter' ? (
+                    <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
+                  ) : mode.kind === 'tests' ? (
+                    <TestPicker patient={patient} draft={draft} dispatch={dispatch} />
+                  ) : mode.kind === 'images' ? (
+                    <ImageViewer key={patient.id} patientName={patient.name} />
+                  ) : mode.kind === 'diseases' ? (
+                    <DiseasePanel patient={patient} draft={draft} dispatch={dispatch} />
+                  ) : editing ? (
+                    <PastEditor key={editing.id} encounter={editing} dispatch={dispatch} />
+                  ) : (
+                    <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} onOpenRx={openRx} />
+                  )}
+                </div>
+                <OrderRail
+                  active={mode.kind === 'letter' ? 'letter' : mode.kind === 'images' ? 'image' : mode.kind === 'tests' ? 'test' : mode.kind === 'diseases' ? 'disease' : null}
+                  onSelect={selectRail}
+                />
+              </div>
+            </main>
+          </>
+        ) : (
+          <Desk view={view} patients={state.patients} dispatch={dispatch} onMetrics={() => setMetricsOpen(true)} />
         )}
-        <button onClick={() => setMetricsOpen(true)} className="icon-btn" title="操作計測（⌘M）">
-          <Icon name="monitoring" />
-        </button>
-      </header>
 
-      <PatientTabs patients={state.patients} currentId={state.currentId} dispatch={dispatch} />
-
-      {patient ? (
-        <>
-          <div className="no-print flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-            <PatientIcon patient={patient} size={48} />
-            <div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-[22px] leading-7">{patient.name}</span>
-                <span className="text-sm text-ink-2">{patient.kana}</span>
-              </div>
-              <div className="text-xs text-ink-2">{birthLabel(patient.birth)}生</div>
-            </div>
-            <span className="text-base font-medium">{ageSex(patient)}</span>
-            <span className="flex h-8 items-center gap-1 rounded-lg border border-outline-var px-3 text-[13px] text-ink-2">
-              <Icon name="badge" size={18} />
-              {patient.insurance} {Math.round(patient.burden * 10)}割
+        <footer className="no-print touch:hidden flex shrink-0 flex-wrap gap-x-4 gap-y-1 px-5 py-2 text-xs text-ink-2">
+          {[
+            ['⌘K', '検索・追加'],
+            ['⌘P', '処方'],
+            ['⌘D', 'Do処方'],
+            ['⌘⇧D', '前回記載コピー'],
+            ['⌘L', '紹介状'],
+            ['⌘Enter', '確定'],
+            ['⌘J', '次の患者'],
+          ].map(([k, l]) => (
+            <span key={k} className="flex items-center gap-1">
+              <span className="kbd">{k}</span>
+              {l}
             </span>
-            <span className="flex h-8 items-center rounded-lg border border-outline-var px-3 text-[13px] text-ink-2">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
-            <span className="flex-1" />
-            <span className={`hidden items-center gap-1 text-xs md:flex ${saveOk ? 'text-ink-2' : 'font-medium text-error'}`}>
-              <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={18} />
-              {saveOk ? (draft.savedAt ? `下書き保存 ${draft.savedAt}` : '下書きなし') : '下書きを保存できません'}
-            </span>
-            <button onClick={() => confirm()} className="btn btn-filled">
-              <Icon name="check" size={20} />
-              確定して会計へ <span className="kbd">⌘Enter</span>
-            </button>
-          </div>
-          <main className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-1 lg:flex-row">
-            <div className="no-print card min-h-0 shrink-0 basis-[34%] overflow-hidden lg:shrink lg:basis-0 lg:flex-[2]">
-              <LeftPane
-                patient={patient}
-                selectedId={editing?.id ?? null}
-                onDo={(id) => dispatch({ type: 'do', encounterId: id })}
-                onQuote={(text) =>
-                  mode.kind === 'letter'
-                    ? dispatch({
-                        type: 'letter',
-                        patch: {
-                          body: draft.letter?.body ? `${draft.letter.body}\n${text}` : text,
-                        },
-                      })
-                    : dispatch({ type: 'insertText', text })
-                }
-                onEdit={(id) =>
-                  dispatch({
-                    type: 'mode',
-                    mode: { kind: 'edit-past', encounterId: id },
-                  })
-                }
-              />
-            </div>
-            <div className="flex min-h-0 flex-1 gap-2 lg:flex-[3]">
-              <div className="card min-h-0 flex-1 overflow-hidden">
-                {mode.kind === 'letter' ? (
-                  <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
-                ) : mode.kind === 'tests' ? (
-                  <TestPicker patient={patient} draft={draft} dispatch={dispatch} />
-                ) : mode.kind === 'images' ? (
-                  <ImageViewer key={patient.id} patientName={patient.name} />
-                ) : mode.kind === 'diseases' ? (
-                  <DiseasePanel patient={patient} draft={draft} dispatch={dispatch} />
-                ) : editing ? (
-                  <PastEditor key={editing.id} encounter={editing} dispatch={dispatch} />
-                ) : (
-                  <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} onOpenRx={openRx} />
-                )}
-              </div>
-              <OrderRail
-                active={mode.kind === 'letter' ? 'letter' : mode.kind === 'images' ? 'image' : mode.kind === 'tests' ? 'test' : mode.kind === 'diseases' ? 'disease' : null}
-                onSelect={selectRail}
-              />
-            </div>
-          </main>
-        </>
-      ) : (
-        <Reception patients={state.patients} dispatch={dispatch} />
-      )}
-
-      <footer className="no-print touch:hidden flex shrink-0 flex-wrap gap-x-4 gap-y-1 px-5 py-2 text-xs text-ink-2">
-        {[
-          ['⌘K', '検索・追加'],
-          ['⌘P', '処方'],
-          ['⌘D', 'Do処方'],
-          ['⌘⇧D', '前回記載コピー'],
-          ['⌘L', '紹介状'],
-          ['⌘Enter', '確定'],
-          ['⌘J', '次の患者'],
-        ].map(([k, l]) => (
-          <span key={k} className="flex items-center gap-1">
-            <span className="kbd">{k}</span>
-            {l}
+          ))}
+          <span className="flex-1" />
+          <span>
+            目標：再診 {GOAL_SECONDS}秒・{GOAL_OPS}操作以内
           </span>
-        ))}
-        <span className="flex-1" />
-        <span>
-          目標：再診 {GOAL_SECONDS}秒・{GOAL_OPS}操作以内
-        </span>
-      </footer>
+        </footer>
+      </div>
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
       {rxOpen && patient && <RxWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setRxOpen(false)} />}
@@ -384,9 +384,10 @@ export default function App() {
 }
 
 // 受付一覧と診察対象の患者を切り替えるタブ（ブラウザ型）
-function PatientTabs({ patients, currentId, dispatch }: { patients: Patient[]; currentId: string | null; dispatch: (a: Action) => void }) {
+function PatientTabs({ view, patients, currentId, dispatch }: { view: View; patients: Patient[]; currentId: string | null; dispatch: (a: Action) => void }) {
   const open = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
   const home = currentId === null
+  const nav = NAV.find((n) => n.id === view) ?? NAV[1]
   const goHome = () => dispatch({ type: 'close' })
   const openP = (id: string) => dispatch({ type: 'open', patientId: id })
   const tab = (on: boolean) =>
@@ -396,8 +397,8 @@ function PatientTabs({ patients, currentId, dispatch }: { patients: Patient[]; c
   return (
     <div role="tablist" className="no-print flex shrink-0 items-end gap-0.5 overflow-x-auto bg-surface-2 px-2 pt-2">
       <button role="tab" aria-selected={home} onClick={goHome} className={tab(home)}>
-        <Icon name="groups" fill={home} size={18} />
-        受付一覧 <span className="text-xs text-ink-2">{open.length}</span>
+        <Icon name={nav.icon} fill={home} size={18} />
+        {nav.label} {view === 'reception' && <span className="text-xs text-ink-2">{open.length}</span>}
       </button>
       {open.map((p, i) => {
         const on = p.id === currentId
@@ -413,82 +414,6 @@ function PatientTabs({ patients, currentId, dispatch }: { patients: Patient[]; c
         )
       })}
     </div>
-  )
-}
-
-function Reception({ patients, dispatch }: { patients: Patient[]; dispatch: (a: Action) => void }) {
-  return (
-    <main className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-1">
-      <div className="card px-6 py-5">
-        <h1 className="mb-4 text-[22px]">受付・会計</h1>
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs text-ink-2">
-            <tr className="border-b border-outline-var">
-              <th className="px-3 py-2 font-medium">状態</th>
-              <th className="px-3 py-2 font-medium">氏名</th>
-              <th className="px-3 py-2 font-medium">年齢・性別／生年月日</th>
-              <th className="px-3 py-2 font-medium">保険</th>
-              <th className="px-3 py-2 font-medium">今日の内容</th>
-              <th className="px-3 py-2"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {patients.map((p) => {
-              const done = p.status === '会計待ち' || p.status === '済'
-              const last = p.encounters.at(-1)
-              return (
-                <tr key={p.id} className="border-b border-surface-2 hover:bg-surface-1">
-                  <td className="px-3 py-2.5">
-                    <span className={`rounded-lg px-2.5 py-1 text-xs font-medium ${STATUS_STYLE[p.status]}`}>{p.status}</span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-3">
-                      <PatientIcon patient={p} size={36} />
-                      <div>
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-ink-2">{p.kana}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <div>{ageSex(p)}</div>
-                    <div className="text-xs text-ink-2">{birthLabel(p.birth)}生</div>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {p.insurance} {Math.round(p.burden * 10)}割
-                  </td>
-                  <td className="px-3 py-2.5 text-ink-2">
-                    {done && last ? `${last.kind}・処方${last.rx.length}剤・検査${last.tests.length}件${last.letters.length ? '・紹介状' : ''}` : '—'}
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    {!done && (
-                      <button onClick={() => dispatch({ type: 'open', patientId: p.id })} className="btn btn-sm btn-filled">
-                        <Icon name="stethoscope" size={18} />
-                        診察
-                      </button>
-                    )}
-                    {p.status === '会計待ち' && (
-                      <button onClick={() => dispatch({ type: 'paid', patientId: p.id })} className="btn btn-sm btn-tonal">
-                        <Icon name="payments" size={18} />
-                        会計済にする
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        <p className="mt-4 flex items-center gap-1.5 text-xs text-ink-2">
-          <Icon name="info" size={16} />
-          点数・窓口負担の計算は算定エンジン（Phase 3）で実装します。この画面は流れの確認用です。
-        </p>
-        <button onClick={() => dispatch({ type: 'reset' })} className="btn btn-sm btn-text mt-4 -ml-3">
-          <Icon name="restart_alt" size={18} />
-          架空データを初期状態に戻す
-        </button>
-      </div>
-    </main>
   )
 }
 
