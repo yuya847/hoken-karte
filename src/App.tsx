@@ -242,14 +242,7 @@ export default function App() {
           <span className="hidden pr-2 text-[22px] text-ink-2 lg:inline">保険診療カルテ</span>
           <span className="hidden rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-2 xl:inline">試作・架空データ</span>
 
-          <button
-            onClick={() => setPalette(true)}
-            className="mx-auto flex h-12 w-full max-w-[640px] items-center gap-3 rounded-full bg-surface-2 px-4 text-left text-ink-2 transition-colors hover:bg-surface-2/70 hover:shadow-sm"
-          >
-            <Icon name="search" size={22} />
-            <span className="flex-1 text-[15px]">薬・検査・病名・操作を検索</span>
-            <span className="kbd">⌘K</span>
-          </button>
+          <span className="flex-1" />
 
           {state.session && (
             <div className="flex items-center gap-1.5 text-sm">
