@@ -42,12 +42,6 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
   return (
     <div className="flex h-full flex-col">
       <div className="space-y-3 px-5 pt-4 pb-3">
-        {patient.allergies.length > 0 && (
-          <div className="flex items-center gap-2 rounded-xl bg-error-ctr px-3 py-2 text-sm font-medium text-error">
-            <Icon name="warning" fill size={20} />
-            アレルギー：{patient.allergies.join('、')}
-          </div>
-        )}
         <div className="flex gap-1.5 overflow-x-auto">
           {FILTERS.map((f) => (
             <button key={f} onClick={() => setFilter(f)} className={`chip ${filter === f ? 'chip-on' : ''}`}>

@@ -25,7 +25,7 @@ export const STATUS_STYLE: Record<QueueStatus, string> = {
 // 左の縦メニュー。診察中（カルテを開いている間）は細くして記載欄の幅を保つ
 export function NavRail({ view, slim, onSelect }: { view: View | null; slim: boolean; onSelect: (v: View) => void }) {
   return (
-    <aside aria-label="メニュー" className={`no-print flex shrink-0 flex-col items-center gap-1 pt-3 pb-3 ${slim ? 'w-14' : 'w-[76px]'}`}>
+    <aside aria-label="メニュー" className={`no-print flex shrink-0 flex-col items-center gap-1 pt-3 pb-3 max-md:hidden ${slim ? 'w-14' : 'w-[76px]'}`}>
       <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white" title="保険診療カルテ">
         <Icon name="clinical_notes" fill size={24} />
       </span>
@@ -51,6 +51,30 @@ export function NavRail({ view, slim, onSelect }: { view: View | null; slim: boo
   )
 }
 
+// 幅768未満は左の縦メニューの代わりに下のタブ（並びは縦メニューと同じ）
+export function MobileTabBar({ view, onSelect }: { view: View | null; onSelect: (v: View) => void }) {
+  return (
+    <nav aria-label="メニュー" className="no-print flex shrink-0 border-t border-outline-var bg-surface-1 pb-[env(safe-area-inset-bottom)] md:hidden">
+      {NAV.map((n) => {
+        const on = view === n.id
+        return (
+          <button
+            key={n.id}
+            onClick={() => onSelect(n.id)}
+            aria-current={on ? 'page' : undefined}
+            className={`flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${on ? 'text-on-secondary-ctr' : 'text-ink-2'}`}
+          >
+            <span className={`flex h-7 w-12 items-center justify-center rounded-full ${on ? 'bg-secondary-ctr' : ''}`}>
+              <Icon name={n.icon} fill={on} size={22} />
+            </span>
+            {n.label}
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
+
 const todaySummary = (p: Patient) => {
   const last = p.encounters.at(-1)
   const done = p.status === '会計待ち' || p.status === '済'
@@ -63,18 +87,29 @@ const slotOf = (i: number) => {
   return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`
 }
 
-type Col = { head: string; cell: (p: Patient, i: number) => React.ReactNode; className?: string }
+type SortKey = 'kana' | 'age' | 'last'
+type Col = { head: string; cell: (p: Patient, i: number) => React.ReactNode; className?: string; sort?: SortKey }
+type Sort = { key: SortKey; dir: 1 | -1; set: (k: SortKey) => void }
 
-// 行のどこを押してもカルテが開く表。行の中のボタンは行のクリックと分ける
-function PatientTable({ patients, cols, onOpen, empty }: { patients: Patient[]; cols: Col[]; onOpen: (id: string) => void; empty: string }) {
-  if (patients.length === 0) return <div className="rounded-2xl bg-surface-1 py-10 text-center text-ink-2">{empty}</div>
+// 行のどこを押してもカルテが開く表。行の中のボタンは行のクリックと分ける。
+// スマホは列を隠し、隠した内容は氏名の下に小さく出す。
+// 表は横いっぱいに伸ばさない（列が端と端に離れると読みにくい。biyou-karte の患者一覧と同じ）
+function PatientTable({ patients, cols, onOpen, empty, sort }: { patients: Patient[]; cols: Col[]; onOpen: (id: string) => void; empty: string; sort?: Sort }) {
+  if (patients.length === 0) return <div className="max-w-4xl rounded-2xl bg-surface-1 py-10 text-center text-ink-2">{empty}</div>
   return (
-    <table className="w-full text-sm">
+    <table className="w-full max-w-4xl text-sm">
       <thead className="text-left text-xs text-ink-2">
         <tr className="border-b border-outline-var">
           {cols.map((c, i) => (
-            <th key={i} className={`px-3 py-2 font-medium ${c.className ?? ''}`}>
-              {c.head}
+            <th key={i} className={`px-3 py-2 font-medium whitespace-nowrap ${c.className ?? ''}`} aria-sort={sort && c.sort === sort.key ? (sort.dir === 1 ? 'ascending' : 'descending') : undefined}>
+              {sort && c.sort ? (
+                <button onClick={() => sort.set(c.sort!)} className={`-mx-1 flex items-center gap-0.5 rounded px-1 hover:text-ink ${c.sort === sort.key ? 'text-ink' : ''}`}>
+                  {c.head}
+                  {c.sort === sort.key && <Icon name={sort.dir === 1 ? 'arrow_upward' : 'arrow_downward'} size={14} />}
+                </button>
+              ) : (
+                c.head
+              )}
             </th>
           ))}
         </tr>
@@ -106,39 +141,69 @@ const stop = (fn: () => void) => (e: React.MouseEvent) => {
   fn()
 }
 
+const STATUSES: QueueStatus[] = ['待ち', '診察中', '会計待ち', '済']
+
+// 状態は行の中で直接変えられる（押してもカルテは開かない）
+function StatusSelect({ p, dispatch }: { p: Patient; dispatch: (a: Action) => void }) {
+  return (
+    <select
+      value={p.status}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      onChange={(e) => dispatch({ type: 'status', patientId: p.id, status: e.target.value as QueueStatus })}
+      aria-label={`${p.name}の状態`}
+      className={`h-8 cursor-pointer appearance-none rounded-lg px-2.5 text-xs font-medium whitespace-nowrap outline-none touch:h-10 ${STATUS_STYLE[p.status]}`}
+    >
+      {STATUSES.map((s) => (
+        <option key={s}>{s}</option>
+      ))}
+    </select>
+  )
+}
+
 const C = {
-  status: { head: '状態', cell: (p: Patient) => <span className={`rounded-lg px-2.5 py-1 text-xs font-medium whitespace-nowrap ${STATUS_STYLE[p.status]}`}>{p.status}</span> },
   name: {
     head: '氏名',
+    sort: 'kana',
     cell: (p: Patient) => (
       <div className="flex items-center gap-3">
         <PatientIcon patient={p} size={36} />
-        <div>
-          <div className="font-medium">{p.name}</div>
-          <div className="text-xs text-ink-2">{p.kana}</div>
+        <div className="min-w-0">
+          <div className="text-base font-medium whitespace-nowrap">{p.name}</div>
+          <div className="text-xs whitespace-nowrap text-ink-2">
+            {p.kana}
+            <span className="md:hidden">・{ageSex(p)}</span>
+          </div>
         </div>
       </div>
     ),
   },
   age: {
     head: '年齢・性別／生年月日',
+    sort: 'age',
+    className: 'max-md:hidden',
     cell: (p: Patient) => (
       <>
-        <div>{ageSex(p)}</div>
+        <div className="whitespace-nowrap">{ageSex(p)}</div>
         <div className="text-xs text-ink-2">{birthLabel(p.birth)}生</div>
       </>
     ),
   },
-  insurance: { head: '保険', cell: (p: Patient) => `${p.insurance} ${Math.round(p.burden * 10)}割`, className: 'max-md:hidden' },
+  insurance: { head: '保険', cell: (p: Patient) => `${p.insurance} ${Math.round(p.burden * 10)}割`, className: 'whitespace-nowrap max-md:hidden' },
+  last: { head: '最終受診', sort: 'last', cell: (p: Patient) => <span className="tabular-nums">{p.encounters.at(-1)?.date ?? '—'}</span>, className: 'whitespace-nowrap max-md:hidden' },
   today: { head: '今日の内容', cell: (p: Patient) => <span className="text-ink-2">{todaySummary(p)}</span>, className: 'max-lg:hidden' },
   open: { head: '', cell: () => <Icon name="chevron_right" className="text-ink-2" />, className: 'w-10 text-right' },
 } satisfies Record<string, Col>
 
-function Page({ title, children, note }: { title: string; children: React.ReactNode; note?: string }) {
+// 見出しの右に検索などを置く（上部の共通検索バーは置かない）
+function Page({ title, children, note, action }: { title: string; children: React.ReactNode; note?: string; action?: React.ReactNode }) {
   return (
     <main className="min-h-0 flex-1 overflow-y-auto px-2 pt-2 pb-1">
-      <div className="card px-6 py-5">
-        <h1 className="mb-4 text-[22px]">{title}</h1>
+      <div className="card px-4 py-5 md:px-6">
+        <div className="mb-4 flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2">
+          <h1 className="text-[22px] whitespace-nowrap">{title}</h1>
+          {action}
+        </div>
         {children}
         {note && (
           <p className="mt-4 flex items-center gap-1.5 text-xs text-ink-2">
@@ -155,11 +220,21 @@ type DeskProps = { view: View; patients: Patient[]; dispatch: (a: Action) => voi
 
 export function Desk({ view, patients, dispatch, onMetrics }: DeskProps) {
   const open = (id: string) => dispatch({ type: 'open', patientId: id })
+  const status: Col = { head: '状態', cell: (p) => <StatusSelect p={p} dispatch={dispatch} /> }
   const [q, setQ] = useState('')
+  const [sortKey, setSortKey] = useState<SortKey>('kana')
+  const [dir, setDir] = useState<1 | -1>(1)
+  // 見出しを押すと並べ替え、同じ見出しをもう一度押すと逆順
+  const sort: Sort = { key: sortKey, dir, set: (k) => (k === sortKey ? setDir((d) => (d === 1 ? -1 : 1)) : (setSortKey(k), setDir(1))) }
   const found = useMemo(() => {
-    const t = toHira(q.trim().toLowerCase())
-    return t ? patients.filter((p) => toHira(`${p.name} ${p.kana}`.toLowerCase()).replace(/\s/g, '').includes(t.replace(/\s/g, ''))) : patients
-  }, [q, patients])
+    const t = toHira(q.trim().toLowerCase()).replace(/\s/g, '')
+    const hit = t ? patients.filter((p) => toHira(`${p.name}${p.kana}`.toLowerCase()).replace(/\s/g, '').includes(t)) : patients
+    const val = (p: Patient) => (sortKey === 'kana' ? p.kana : sortKey === 'age' ? p.birth : (p.encounters.at(-1)?.date ?? ''))
+    // 年齢の昇順＝若い順なので生年月日は逆に比べる
+    const sign = sortKey === 'age' ? -dir : dir
+    return [...hit].sort((a, b) => val(a).localeCompare(val(b), 'ja') * sign)
+  }, [q, patients, sortKey, dir])
+  const byStatus = (order: QueueStatus[]) => (a: Patient, b: Patient) => order.indexOf(a.status) - order.indexOf(b.status)
 
   if (view === 'schedule')
     return (
@@ -168,43 +243,43 @@ export function Desk({ view, patients, dispatch, onMetrics }: DeskProps) {
           patients={patients}
           onOpen={open}
           empty="予定はありません"
-          cols={[{ head: '時刻', cell: (_p, i) => <span className="font-medium tabular-nums">{slotOf(i)}</span>, className: 'w-20' }, C.name, C.age, C.status, C.open]}
+          cols={[{ head: '時刻', cell: (_p, i) => <span className="font-medium tabular-nums">{slotOf(i)}</span>, className: 'w-20' }, C.name, C.age, status, C.open]}
         />
       </Page>
     )
 
   if (view === 'reception') {
-    const list = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
+    // 診察中を上に。状態は行の札から直接変えられる
+    const list = patients.filter((p) => p.status === '待ち' || p.status === '診察中').sort(byStatus(['診察中', '待ち']))
     return (
-      <Page title={`受付（待ち ${list.length}人）`} note="行のどこを押してもカルテが開きます。">
-        <PatientTable patients={list} onOpen={open} empty="待っている患者はいません" cols={[C.status, C.name, C.age, C.insurance, C.open]} />
+      <Page title={`受付（待ち ${list.filter((p) => p.status === '待ち').length}人）`} note="行のどこを押してもカルテが開きます。状態の札を押すと状態を変えられます。">
+        <PatientTable patients={list} onOpen={open} empty="待っている患者はいません" cols={[status, C.name, C.age, C.insurance, C.open]} />
       </Page>
     )
   }
 
   if (view === 'patients')
     return (
-      <Page title="患者">
-        <div className="relative mb-3 max-w-md">
-          <Icon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-2" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="氏名・カナで検索（例：やまだ）"
-            className="h-11 w-full rounded-full bg-surface-1 pr-4 pl-10 text-sm outline-none placeholder:text-ink-2/70 focus:bg-white focus:shadow-md"
-          />
-        </div>
-        <PatientTable
-          patients={found}
-          onOpen={open}
-          empty="該当する患者はいません"
-          cols={[C.name, C.age, C.insurance, { head: '最終受診', cell: (p) => p.encounters.at(-1)?.date ?? '—', className: 'max-md:hidden' }, C.status, C.open]}
-        />
+      <Page
+        title="患者"
+        action={
+          <div className="relative min-w-56 flex-1 md:max-w-sm">
+            <Icon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-2" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="氏名・カナで検索（例：やまだ）"
+              className="h-10 w-full rounded-full bg-surface-1 pr-4 pl-10 text-sm outline-none placeholder:text-ink-2/70 focus:bg-white focus:shadow-md touch:h-11"
+            />
+          </div>
+        }
+      >
+        <PatientTable patients={found} onOpen={open} empty="該当する患者はいません" sort={sort} cols={[C.name, C.age, C.insurance, C.last, status, C.open]} />
       </Page>
     )
 
   if (view === 'accounting') {
-    const list = patients.filter((p) => p.status === '会計待ち' || p.status === '済')
+    const list = patients.filter((p) => p.status === '会計待ち' || p.status === '済').sort(byStatus(['会計待ち', '済']))
     return (
       <Page title="会計" note="点数・窓口負担の計算は算定エンジン（Phase 3）で実装します。行を押すとカルテを確認できます。">
         <PatientTable
@@ -212,7 +287,7 @@ export function Desk({ view, patients, dispatch, onMetrics }: DeskProps) {
           onOpen={open}
           empty="会計待ちの患者はいません"
           cols={[
-            C.status,
+            status,
             C.name,
             C.today,
             {

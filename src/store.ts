@@ -1,7 +1,7 @@
 import { DISEASES, SETS, initialPatients, rxFromDrug, testFromCode, today, uid } from './data'
 import { applyPlan, planDiseases } from './orders'
 import { parseVitals } from './vitals'
-import type { Disease, Draft, Encounter, Patient, RightMode, RxItem, SessionMetric, TestOrder, Vitals } from './types'
+import type { Disease, Draft, Encounter, Patient, QueueStatus, RightMode, RxItem, SessionMetric, TestOrder, Vitals } from './types'
 
 export type State = {
   patients: Patient[]
@@ -35,6 +35,7 @@ export type Action =
   | { type: 'savePast'; encounterId: string; text: string; vitals: Vitals }
   | { type: 'confirm' }
   | { type: 'paid'; patientId: string }
+  | { type: 'status'; patientId: string; status: QueueStatus }
   | { type: 'clearMetrics' }
   | { type: 'close' }
   | { type: 'reset' }
@@ -240,6 +241,8 @@ export function reducer(s: State, a: Action): State {
     }
     case 'paid':
       return { ...s, patients: s.patients.map((p) => (p.id === a.patientId ? { ...p, status: '済' } : p)) }
+    case 'status':
+      return { ...s, patients: s.patients.map((p) => (p.id === a.patientId ? { ...p, status: a.status } : p)) }
     case 'close':
       return { ...s, currentId: null, mode: { kind: 'chart' } }
     case 'clearMetrics':

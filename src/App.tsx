@@ -11,7 +11,7 @@ import { OrderRail, type RailId } from './OrderRail'
 import { ChartEditor, PastEditor } from './RightPane'
 import { DiseasePanel } from './DiseasePanel'
 import { RxWindow } from './RxWindow'
-import { Desk, NAV, NavRail, type View } from './Desk'
+import { Desk, MobileTabBar, NAV, NavRail, type View } from './Desk'
 import { emptyDraft, loadState, reducer, saveState, type Action, type State } from './store'
 import type { Patient } from './types'
 
@@ -227,16 +227,14 @@ export default function App() {
   const mode = state.mode
   const editing = patient && mode.kind === 'edit-past' ? patient.encounters.find((e) => e.id === mode.encounterId) : undefined
 
+  const selectView = (v: View) => {
+    setView(v)
+    dispatch({ type: 'close' })
+  }
+
   return (
     <div className="flex h-full bg-page">
-      <NavRail
-        view={patient ? null : view}
-        slim={!!patient}
-        onSelect={(v) => {
-          setView(v)
-          dispatch({ type: 'close' })
-        }}
-      />
+      <NavRail view={patient ? null : view} slim={!!patient} onSelect={selectView} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="no-print flex h-16 shrink-0 items-center gap-2 pr-3">
           <span className="hidden pr-2 text-[22px] text-ink-2 lg:inline">保険診療カルテ</span>
@@ -267,19 +265,28 @@ export default function App() {
           <>
             <div className="no-print flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
               <PatientIcon patient={patient} size={48} />
-              <div>
+              <div className="whitespace-nowrap">
                 <div className="flex items-baseline gap-2">
                   <span className="text-[22px] leading-7">{patient.name}</span>
                   <span className="text-sm text-ink-2">{patient.kana}</span>
                 </div>
                 <div className="text-xs text-ink-2">{birthLabel(patient.birth)}生</div>
               </div>
-              <span className="text-base font-medium">{ageSex(patient)}</span>
-              <span className="flex h-8 items-center gap-1 rounded-lg border border-outline-var px-3 text-[13px] text-ink-2">
+              <span className="text-base font-medium whitespace-nowrap">{ageSex(patient)}</span>
+              {/* アレルギーは無くても「—」で必ず出す（確認したかどうかが分かる） */}
+              <span
+                className={`flex h-8 items-center gap-1 rounded-lg px-3 text-[13px] whitespace-nowrap ${
+                  patient.allergies.length ? 'bg-error-ctr font-medium text-error' : 'border border-outline-var text-ink-2'
+                }`}
+              >
+                <Icon name={patient.allergies.length ? 'warning' : 'check'} fill={patient.allergies.length > 0} size={18} />
+                アレルギー {patient.allergies.length ? patient.allergies.join('、') : '—'}
+              </span>
+              <span className="flex h-8 items-center gap-1 rounded-lg border border-outline-var px-3 text-[13px] whitespace-nowrap text-ink-2">
                 <Icon name="badge" size={18} />
                 {patient.insurance} {Math.round(patient.burden * 10)}割
               </span>
-              <span className="flex h-8 items-center rounded-lg border border-outline-var px-3 text-[13px] text-ink-2">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
+              <span className="flex h-8 items-center rounded-lg border border-outline-var px-3 text-[13px] whitespace-nowrap text-ink-2">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
               <span className="flex-1" />
               <span className={`hidden items-center gap-1 text-xs md:flex ${saveOk ? 'text-ink-2' : 'font-medium text-error'}`}>
                 <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={18} />
@@ -341,7 +348,7 @@ export default function App() {
           <Desk view={view} patients={state.patients} dispatch={dispatch} onMetrics={() => setMetricsOpen(true)} />
         )}
 
-        <footer className="no-print touch:hidden flex shrink-0 flex-wrap gap-x-4 gap-y-1 px-5 py-2 text-xs text-ink-2">
+        <footer className="no-print touch:hidden flex max-md:hidden shrink-0 flex-wrap gap-x-4 gap-y-1 px-5 py-2 text-xs text-ink-2">
           {[
             ['⌘K', '検索・追加'],
             ['⌘P', '処方'],
@@ -361,6 +368,7 @@ export default function App() {
             目標：再診 {GOAL_SECONDS}秒・{GOAL_OPS}操作以内
           </span>
         </footer>
+        <MobileTabBar view={patient ? null : view} onSelect={selectView} />
       </div>
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
