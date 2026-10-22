@@ -128,7 +128,6 @@ export const DRUG_CLASS: Record<string, (typeof DRUG_CLASSES)[number]> = {
   d15: '痛風・高尿酸',
 }
 
-export const USAGES = ['1日1回朝食後', '1日1回夕食後', '1日1回就寝前', '1日2回朝夕食後', '1日3回毎食後', '発熱・疼痛時']
 export const DAY_PRESETS = [3, 5, 7, 14, 28, 56]
 
 // 適応病名の簡易対応表（試作用）。正式な適応・算定要件はPhase 3で医薬品・診療行為マスタから引く。

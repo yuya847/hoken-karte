@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Icon } from './Icon'
+import { rxLine } from './rxFormat'
 import type { Encounter, Patient, Vitals } from './types'
 
 export type Filter = '全て' | '記載' | '処方' | '検査' | '文書'
@@ -21,7 +22,7 @@ export const encounterSummary = (e: Encounter) =>
     `【${e.date} ${e.kind}】`,
     vitalsLine(e.vitals),
     e.text,
-    e.rx.length ? `処方：${e.rx.map((r) => `${r.name} ${r.dose}${r.unit} ${r.usage} ${r.days}日`).join('、')}` : '',
+    e.rx.length ? `処方：${e.rx.map(rxLine).join('、')}` : '',
     e.tests.length ? `検査：${e.tests.map((t) => t.name).join('、')}` : '',
   ]
     .filter(Boolean)
@@ -104,8 +105,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
                   </div>
                   {e.rx.map((r) => (
                     <div key={r.id}>
-                      {r.name} {r.dose}
-                      {r.unit} {r.usage} {r.days}日
+                      {rxLine(r)}
                     </div>
                   ))}
                 </div>

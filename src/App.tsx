@@ -4,6 +4,7 @@ import { DISEASES, DRUGS, SETS, TESTS } from './data'
 import { LeftPane } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { Icon } from './Icon'
+import { daysText, doseText, usageText } from './rxFormat'
 import { PacsPanel } from './PacsPanel'
 import { TestWindow } from './TestWindow'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
@@ -13,7 +14,7 @@ import { DiseasePanel } from './DiseasePanel'
 import { RxWindow } from './RxWindow'
 import { Desk, MobileTabBar, NAV, NavRail, type View } from './Desk'
 import { emptyDraft, loadState, reducer, saveState, type Action, type State } from './store'
-import type { Patient } from './types'
+import type { Draft, Patient } from './types'
 
 const GOAL_SECONDS = 60
 const GOAL_OPS = 15
@@ -31,6 +32,12 @@ export default function App() {
   winRef.current = { rx: rxOpen, test: testOpen }
   // ✗で閉じた患者タブ（もう一度開けば戻る）
   const [closedTabs, setClosedTabs] = useState<Set<string>>(new Set())
+  // ドラッグで並べ替えたタブの順（患者ID）
+  const [tabOrder, setTabOrder] = useState<string[]>([])
+  // 確定していない患者のタブを閉じようとしたときの確認
+  const [closing, setClosing] = useState<string | null>(null)
+  const closingRef = useRef<string | null>(null)
+  closingRef.current = closing
   const [saveOk, setSaveOk] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
   const [, tick] = useState(0)
@@ -130,6 +137,7 @@ export default function App() {
       }
       if (e.key === 'Escape') {
         setMetricsOpen(false)
+        if (closingRef.current) return hit(() => setClosing(null))
         if (winRef.current.rx) return hit(() => setRxOpen(false))
         if (winRef.current.test) return hit(() => setTestOpen(false))
         if (s.mode.kind !== 'chart' && s.mode.kind !== 'letter') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
@@ -214,7 +222,7 @@ export default function App() {
         id: d.id,
         group: '処方' as const,
         label: d.name,
-        sub: `${d.dose}${d.unit} ${d.usage} ${d.days}日`,
+        sub: `${doseText(d)} ${usageText(d.usage)} ${daysText(d)}`,
         keys: `${d.kana} ${d.alias}`,
         run: run({ type: 'addRx', drugId: d.id }),
       })),
@@ -239,6 +247,12 @@ export default function App() {
   const ops = state.session?.ops ?? 0
   const mode = state.mode
   const editing = patient && mode.kind === 'edit-past' ? patient.encounters.find((e) => e.id === mode.encounterId) : undefined
+
+  const closeTab = (id: string) => {
+    setClosing(null)
+    setClosedTabs((cur) => new Set(cur).add(id))
+    if (stateRef.current.currentId === id) dispatch({ type: 'close' })
+  }
 
   const selectView = (v: View) => {
     setView(v)
@@ -277,10 +291,9 @@ export default function App() {
           patients={state.patients}
           currentId={state.currentId}
           closed={closedTabs}
-          onClose={(id) => {
-            setClosedTabs((cur) => new Set(cur).add(id))
-            if (stateRef.current.currentId === id) dispatch({ type: 'close' })
-          }}
+          order={tabOrder}
+          onReorder={setTabOrder}
+          onClose={(id) => (isDirty(stateRef.current.drafts[id]) ? setClosing(id) : closeTab(id))}
           dispatch={dispatch}
         />
 
@@ -394,6 +407,17 @@ export default function App() {
       </div>
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
+      {closing && (
+        <CloseDialog
+          patient={state.patients.find((p) => p.id === closing)!}
+          onCancel={() => setClosing(null)}
+          onKeep={() => closeTab(closing)}
+          onDiscard={() => {
+            dispatch({ type: 'discardDraft', patientId: closing })
+            closeTab(closing)
+          }}
+        />
+      )}
       {testOpen && patient && <TestWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setTestOpen(false)} />}
       {rxOpen && patient && <RxWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setRxOpen(false)} />}
       {metricsOpen && <MetricsPanel state={state} dispatch={dispatch} onClose={() => setMetricsOpen(false)} />}
@@ -407,22 +431,113 @@ export default function App() {
   )
 }
 
-// 受付一覧と診察対象の患者を切り替えるタブ（ブラウザ型）。✗で閉じたタブは、その患者をもう一度開くまで出さない
-type TabsProps = { view: View; patients: Patient[]; currentId: string | null; closed: Set<string>; onClose: (id: string) => void; dispatch: (a: Action) => void }
+const isDirty = (d?: Draft) => !!d && (d.text.trim() !== '' || d.rx.length > 0 || d.tests.length > 0 || !!d.letter)
 
-function PatientTabs({ view, patients, currentId, closed, onClose, dispatch }: TabsProps) {
+// 確定していない患者のタブを✗で閉じるときの確認。下書きは残すのが既定
+function CloseDialog({ patient, onCancel, onKeep, onDiscard }: { patient: Patient; onCancel: () => void; onKeep: () => void; onDiscard: () => void }) {
+  return (
+    <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onPointerDown={onCancel}>
+      <div role="alertdialog" aria-modal="true" aria-label="タブを閉じる" className="w-[520px] max-w-full rounded-[28px] bg-surface-1 p-6 shadow-2xl" onPointerDown={(e) => e.stopPropagation()}>
+        <Icon name="edit_note" size={24} className="text-primary" />
+        <h2 className="mt-3 text-2xl">{patient.name}さんのカルテは確定していません</h2>
+        <p className="mt-3 text-sm text-ink-2">記載とオーダーは下書きとして残っています。下書きを残して閉じれば、次に開いたときに続きから書けます。</p>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
+          <button onClick={onCancel} className="btn btn-text">
+            キャンセル
+          </button>
+          <button onClick={onDiscard} className="btn btn-danger">
+            破棄して閉じる
+          </button>
+          <button autoFocus onClick={onKeep} className="btn btn-filled">
+            下書きを残して閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 受付一覧と診察対象の患者を切り替えるタブ（ブラウザ型）。✗で閉じたタブは、その患者をもう一度開くまで出さない。
+// ドラッグで並べ替えられる（タッチは長押ししてから動かす。すぐ動かすとタブ列の横スクロール）
+type TabsProps = {
+  view: View
+  patients: Patient[]
+  currentId: string | null
+  closed: Set<string>
+  order: string[]
+  onReorder: (ids: string[]) => void
+  onClose: (id: string) => void
+  dispatch: (a: Action) => void
+}
+
+type DragState = { id: string; x: number; at: number; touch: boolean; started: boolean }
+
+function PatientTabs({ view, patients, currentId, closed, order, onReorder, onClose, dispatch }: TabsProps) {
   const waiting = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
-  const open = patients.filter((p) => p.id === currentId || ((p.status === '待ち' || p.status === '診察中') && !closed.has(p.id)))
+  const rank = (id: string) => (order.includes(id) ? order.indexOf(id) : order.length + patients.findIndex((p) => p.id === id))
+  const open = patients.filter((p) => p.id === currentId || ((p.status === '待ち' || p.status === '診察中') && !closed.has(p.id))).sort((a, b) => rank(a.id) - rank(b.id))
   const home = currentId === null
   const nav = NAV.find((n) => n.id === view) ?? NAV[1]
   const goHome = () => dispatch({ type: 'close' })
   const openP = (id: string) => dispatch({ type: 'open', patientId: id })
+
+  const listRef = useRef<HTMLDivElement>(null)
+  const drag = useRef<DragState | null>(null)
+  const justDragged = useRef(false)
+  const [dragging, setDragging] = useState<string | null>(null)
+
+  // ドラッグ中はタッチでタブ列がスクロールしないようにする
+  useEffect(() => {
+    const el = listRef.current
+    if (!el) return
+    const stop = (e: TouchEvent) => drag.current?.started && e.preventDefault()
+    el.addEventListener('touchmove', stop, { passive: false })
+    return () => el.removeEventListener('touchmove', stop)
+  }, [])
+
+  const onDown = (e: React.PointerEvent, id: string) => {
+    if (e.button !== 0) return
+    drag.current = { id, x: e.clientX, at: Date.now(), touch: e.pointerType !== 'mouse', started: false }
+  }
+  const onMove = (e: React.PointerEvent) => {
+    const d = drag.current
+    if (!d) return
+    if (!d.started) {
+      const moved = Math.abs(e.clientX - d.x)
+      if (d.touch && Date.now() - d.at < 300) {
+        if (moved > 8) drag.current = null
+        return
+      }
+      if (moved < 6 && !d.touch) return
+      d.started = true
+      setDragging(d.id)
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    }
+    const over = [...(listRef.current?.querySelectorAll<HTMLElement>('[data-tab]') ?? [])].find((el) => {
+      const r = el.getBoundingClientRect()
+      return e.clientX >= r.left && e.clientX <= r.right
+    })?.dataset.tab
+    if (!over || over === d.id) return
+    const ids = open.map((p) => p.id).filter((x) => x !== d.id)
+    const to = open.findIndex((p) => p.id === over)
+    ids.splice(to, 0, d.id)
+    onReorder(ids)
+  }
+  const onUp = () => {
+    if (drag.current?.started) {
+      justDragged.current = true
+      setTimeout(() => (justDragged.current = false))
+    }
+    drag.current = null
+    setDragging(null)
+  }
+
   const tab = (on: boolean) =>
     `relative -mb-px flex h-10 max-w-64 touch:h-12 shrink-0 items-center rounded-t-xl text-sm transition-colors ${
       on ? 'z-10 bg-page font-medium text-ink' : 'text-ink-2 hover:bg-white/60'
     }`
   return (
-    <div role="tablist" className="no-print flex shrink-0 items-end gap-0.5 overflow-x-auto bg-surface-2 px-2 pt-2">
+    <div ref={listRef} role="tablist" className="no-print flex shrink-0 items-end gap-0.5 overflow-x-auto bg-surface-2 px-2 pt-2">
       <button role="tab" aria-selected={home} onClick={goHome} className={`${tab(home)} gap-2 px-3`}>
         <Icon name={nav.icon} fill={home} size={18} />
         {nav.label} {view === 'reception' && <span className="text-xs text-ink-2">{waiting.length}</span>}
@@ -431,15 +546,30 @@ function PatientTabs({ view, patients, currentId, closed, onClose, dispatch }: T
         const on = p.id === currentId
         const prevOn = i === 0 ? home : open[i - 1].id === currentId
         return (
-          <div key={p.id} className={`group ${tab(on)}`}>
-            {!on && !prevOn && <span className="absolute top-2.5 left-0 h-5 w-px bg-outline-var" />}
-            <button role="tab" aria-selected={on} onClick={() => openP(p.id)} className="flex h-full min-w-0 items-center gap-2 pr-1 pl-3">
+          <div
+            key={p.id}
+            data-tab={p.id}
+            onPointerDown={(e) => onDown(e, p.id)}
+            onPointerMove={onMove}
+            onPointerUp={onUp}
+            onPointerCancel={onUp}
+            className={`group select-none ${tab(on)} ${dragging === p.id ? 'z-20 cursor-grabbing bg-white shadow-md' : ''}`}
+          >
+            {!on && !prevOn && dragging !== p.id && <span className="absolute top-2.5 left-0 h-5 w-px bg-outline-var" />}
+            <button
+              role="tab"
+              aria-selected={on}
+              onClick={() => !justDragged.current && openP(p.id)}
+              className="flex h-full min-w-0 items-center gap-2 pr-1 pl-3"
+              title="ドラッグで並べ替え"
+            >
               <PatientIcon patient={p} size={20} />
               <span className="truncate">{p.name}</span>
               <span className="text-xs whitespace-nowrap text-ink-2">{ageSex(p)}</span>
               {p.status === '診察中' && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />}
             </button>
             <button
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onClose(p.id)}
               aria-label={`${p.name}のタブを閉じる`}
               title="タブを閉じる"

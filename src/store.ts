@@ -38,6 +38,7 @@ export type Action =
   | { type: 'status'; patientId: string; status: QueueStatus }
   | { type: 'clearMetrics' }
   | { type: 'close' }
+  | { type: 'discardDraft'; patientId: string }
   | { type: 'reset' }
 
 const KEY = 'hoken-karte-proto-v1'
@@ -243,6 +244,11 @@ export function reducer(s: State, a: Action): State {
       return { ...s, patients: s.patients.map((p) => (p.id === a.patientId ? { ...p, status: '済' } : p)) }
     case 'status':
       return { ...s, patients: s.patients.map((p) => (p.id === a.patientId ? { ...p, status: a.status } : p)) }
+    case 'discardDraft': {
+      const drafts = { ...s.drafts }
+      delete drafts[a.patientId]
+      return { ...s, drafts }
+    }
     case 'close':
       return { ...s, currentId: null, mode: { kind: 'chart' } }
     case 'clearMetrics':

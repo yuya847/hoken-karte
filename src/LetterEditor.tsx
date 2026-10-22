@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Icon } from './Icon'
+import { rxLine } from './rxFormat'
 import { diseaseLabel } from './orders'
 import { ageSex, birthLabel } from './PatientIcon'
 import { vitalsLine } from './LeftPane'
@@ -58,8 +59,7 @@ export function LetterEditor({ patient, draft, dispatch }: { patient: Patient; d
               ? '—'
               : rx.map((r) => (
                   <div key={r.id} className="pl-4">
-                    {r.name} {r.dose}
-                    {r.unit} {r.usage} {r.days}日
+                    {rxLine(r)}
                   </div>
                 ))}
           </div>

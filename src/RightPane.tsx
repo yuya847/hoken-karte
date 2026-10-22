@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { DRUGS, SETS, TESTS } from './data'
 import { vitalsLine } from './LeftPane'
 import { Icon } from './Icon'
+import { daysText, doseText, groupRp, usageText } from './rxFormat'
 import { DxStrip } from './DiseasePanel'
 import { OrderSearch, type SearchItem } from './OrderSearch'
 import type { Action } from './store'
@@ -11,7 +12,7 @@ import { parseVitals } from './vitals'
 // 処方・検査・セットをひとつの検索欄で引く。病名はオーダーから自動で付くのでここには出さない
 const ORDER_ITEMS: SearchItem[] = [
   ...SETS.map((x) => ({ id: `set:${x.id}`, label: x.name, keys: `${x.kana} ${x.alias}`, icon: 'playlist_add', iconClass: 'text-primary', tag: 'セット' })),
-  ...DRUGS.map((d) => ({ id: `rx:${d.id}`, label: d.name, sub: `${d.dose}${d.unit} ${d.usage} ${d.days}日`, keys: `${d.kana} ${d.alias}`, icon: 'medication', iconClass: 'text-rx', tag: '処方' })),
+  ...DRUGS.map((d) => ({ id: `rx:${d.id}`, label: d.name, sub: `${doseText(d)} ${usageText(d.usage)} ${daysText(d)}`, keys: `${d.kana} ${d.alias}`, icon: 'medication', iconClass: 'text-rx', tag: '処方' })),
   ...TESTS.map((t) => ({ id: `test:${t.code}`, label: t.name, keys: `${t.kana} ${t.alias}`, icon: 'biotech', iconClass: 'text-lab', tag: '検査' })),
 ]
 
@@ -103,27 +104,27 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
               オーダーなし — 上の検索欄、Do処方、検査 から追加
             </div>
           )}
-          {draft.rx.map((r) => (
-            <div key={r.id} className="rounded-xl bg-rx-ctr/70 py-1.5 pr-1.5 pl-3 text-sm">
-              <div className="flex items-center gap-2">
-                <Icon name="medication" size={18} className="text-rx" />
-                <span className="flex-1 truncate font-medium">{r.name}</span>
-                <input
-                  value={r.dose}
-                  onChange={(e) => dispatch({ type: 'updateRx', id: r.id, patch: { dose: Number(e.target.value) || 0 } })}
-                  className="field field-sm w-12 text-right tabular-nums"
-                />
-                <span className="text-xs text-ink-2">{r.unit}</span>
-                <input value={r.usage} onChange={(e) => dispatch({ type: 'updateRx', id: r.id, patch: { usage: e.target.value } })} className="field field-sm w-36" />
-                <input
-                  value={r.days}
-                  onChange={(e) => dispatch({ type: 'updateRx', id: r.id, patch: { days: Number(e.target.value) || 0 } })}
-                  className="field field-sm w-12 text-right tabular-nums"
-                />
-                <span className="text-xs text-ink-2">日</span>
-                <button onClick={() => dispatch({ type: 'removeRx', id: r.id })} className="icon-btn icon-btn-sm" aria-label="削除">
-                  <Icon name="close" size={18} />
-                </button>
+          {/* 処方は用法・日数が同じ薬を1つのRpにまとめて表示（富士通カルテと同じ並び）。直すときは処方ウインドウで */}
+          {groupRp(draft.rx).map((g, gi) => (
+            <div key={g[0].id} className="flex gap-2 rounded-xl bg-rx-ctr/70 py-1.5 pr-1.5 pl-3 text-sm">
+              <span className="w-8 shrink-0 pt-1.5 text-xs font-medium text-rx">Rp{gi + 1}</span>
+              <div className="min-w-0 flex-1">
+                {g.map((r) => (
+                  <div key={r.id} className="flex items-center gap-2">
+                    <button onClick={onOpenRx} className="min-w-0 flex-1 truncate py-1 text-left font-medium hover:underline" title="処方ウインドウで直す">
+                      {r.name}
+                    </button>
+                    {r.noGeneric && <span className="rounded-md bg-white px-1.5 py-0.5 text-[11px] whitespace-nowrap text-ink-2">後発変更不可</span>}
+                    <span className="text-[13px] whitespace-nowrap text-rx tabular-nums">{doseText(r)}</span>
+                    <button onClick={() => dispatch({ type: 'removeRx', id: r.id })} className="icon-btn icon-btn-sm" aria-label="削除">
+                      <Icon name="close" size={18} />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex gap-4 pr-10 pb-0.5 text-[13px] text-ink-2">
+                  <span className="flex-1 text-right">{usageText(g[0].usage)}</span>
+                  <span className="w-14 text-right tabular-nums">{daysText(g[0])}</span>
+                </div>
               </div>
             </div>
           ))}

@@ -16,6 +16,7 @@ export type RxItem = {
   usage: string
   days: number
   diseases?: string[] // 確定時に紐付いた病名（表示名）
+  noGeneric?: boolean // 後発品への変更不可
 }
 
 export type TestOrder = { id: string; code: string; name: string; diseases?: string[] }
