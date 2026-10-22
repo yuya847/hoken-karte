@@ -22,6 +22,7 @@ type ChartProps = {
   draft: Draft
   dispatch: (a: Action) => void
   onOpenRx: () => void
+  onOpenTests: () => void
 }
 
 function SectionTitle({ icon, label, tone, children }: { icon: string; label: string; tone: string; children?: React.ReactNode }) {
@@ -36,7 +37,7 @@ function SectionTitle({ icon, label, tone, children }: { icon: string; label: st
   )
 }
 
-export function ChartEditor({ patient, draft, dispatch, onOpenRx }: ChartProps) {
+export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }: ChartProps) {
   const textRef = useRef<HTMLTextAreaElement>(null)
   const orderRef = useRef<HTMLInputElement>(null)
   useEffect(() => textRef.current?.focus(), [])
@@ -89,9 +90,9 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx }: ChartProps) 
             <Icon name="replay" size={18} />
             Do処方 <span className="kbd">⌘D</span>
           </button>
-          <button onClick={() => dispatch({ type: 'mode', mode: { kind: 'tests' } })} className="btn btn-sm btn-tonal">
-            <Icon name="checklist" size={18} />
-            検査を選ぶ
+          <button onClick={onOpenTests} className="btn btn-sm btn-tonal">
+            <Icon name="biotech" size={18} />
+            検査 <span className="kbd">⌘E</span>
           </button>
         </SectionTitle>
         <OrderSearch items={ORDER_ITEMS} inputRef={orderRef} placeholder="処方・検査・セットを検索（例：amlo、a1c、kaze）" onPick={pick} />
@@ -99,7 +100,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx }: ChartProps) 
         <div className="mt-3 space-y-1.5">
           {empty && (
             <div className="rounded-xl border border-dashed border-outline-var px-4 py-3 text-sm text-ink-2">
-              オーダーなし — 上の検索欄、Do処方、検査を選ぶ から追加
+              オーダーなし — 上の検索欄、Do処方、検査 から追加
             </div>
           )}
           {draft.rx.map((r) => (

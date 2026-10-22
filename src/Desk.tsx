@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { Icon } from './Icon'
+import { saveIntegrations, useIntegrations, type Integrations as Cfg } from './integrations'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
 import type { Action } from './store'
 import type { Patient, QueueStatus } from './types'
@@ -328,7 +329,59 @@ export function Desk({ view, patients, dispatch, onMetrics }: DeskProps) {
           </span>
         </button>
       </div>
+      <Integrations />
       <p className="mt-4 text-xs text-ink-2">職員・権限、医療機関情報、テンプレートなどの設定は今後追加します。</p>
     </Page>
+  )
+}
+
+const FIELDS: { key: keyof Cfg; label: string; hint: string; placeholder: string }[] = [
+  {
+    key: 'pacsViewer',
+    label: 'PACSビューアのURL',
+    hint: '画像の「PACSで開く」で新しいタブに開きます。{patientId} {accession} {studyUid} は開くときに置き換えます',
+    placeholder: 'https://pacs.example.local/viewer?StudyInstanceUIDs={studyUid}',
+  },
+  {
+    key: 'advViewer',
+    label: 'CT・MRI用ソフトの起動URL',
+    hint: '3Dワークステーション等。CT・MRIの画像にだけボタンが出ます。独自のURLスキーム（例 ziostation://）も使えます',
+    placeholder: 'workstation://open?accession={accession}',
+  },
+  { key: 'advLabel', label: 'CT・MRI用ソフトの表示名', hint: 'ボタンに出す名前', placeholder: '3Dビューア' },
+  {
+    key: 'orderTo',
+    label: 'CT・MRIオーダーの送信先',
+    hint: 'RIS・依頼先病院の名前。本番は HL7 / DICOM MWL で送ります（試作では送信しません）',
+    placeholder: '〇〇病院 放射線科（RIS）',
+  },
+]
+
+// 外部連携（PACS・CT/MRI用ソフト・画像オーダーの送信先）。この端末のブラウザにだけ保存する
+function Integrations() {
+  const cfg = useIntegrations()
+  return (
+    <section className="mt-6 max-w-xl">
+      <h2 className="mb-2 flex items-center gap-2 text-base font-medium">
+        <Icon name="hub" size={20} className="text-primary" />
+        外部連携
+      </h2>
+      <div className="space-y-4 rounded-2xl bg-surface-1 px-4 py-4">
+        {FIELDS.map((f) => (
+          <label key={f.key} className="block">
+            <span className="block text-sm">{f.label}</span>
+            <input
+              value={cfg[f.key]}
+              onChange={(e) => saveIntegrations({ ...cfg, [f.key]: e.target.value })}
+              placeholder={f.placeholder}
+              spellCheck={false}
+              className="field mt-1 h-10 w-full px-3 text-sm"
+            />
+            <span className="mt-1 block text-xs text-ink-2">{f.hint}</span>
+          </label>
+        ))}
+        <p className="text-xs text-ink-2">この端末のブラウザにだけ保存します。</p>
+      </div>
+    </section>
   )
 }

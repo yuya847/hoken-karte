@@ -64,7 +64,16 @@ export const TESTS: { code: string; name: string; kana: string; alias: string; g
   { code: 't29', name: '腹部超音波', kana: 'ふくぶえこー', alias: 'us echo', group: '生理' },
   { code: 't07', name: '胸部X線', kana: 'きょうぶえっくすせん', alias: 'xp', group: '画像' },
   { code: 't30', name: '腹部X線', kana: 'ふくぶえっくすせん', alias: 'axr', group: '画像' },
+  // CT・MRI は確定時に外部（RIS・依頼先）へ送る想定。送信先は 設定 > 外部連携
+  { code: 't31', name: '頭部CT', kana: 'とうぶしーてぃー', alias: 'ct head', group: '画像' },
+  { code: 't32', name: '胸部CT', kana: 'きょうぶしーてぃー', alias: 'ct chest', group: '画像' },
+  { code: 't33', name: '腹部CT', kana: 'ふくぶしーてぃー', alias: 'ct abd', group: '画像' },
+  { code: 't34', name: '頭部MRI', kana: 'とうぶえむあーるあい', alias: 'mri head', group: '画像' },
+  { code: 't35', name: '腰椎MRI', kana: 'ようついえむあーるあい', alias: 'mri lumbar', group: '画像' },
 ]
+
+// 外部へ依頼する画像検査（CT・MRI）
+export const EXTERNAL_IMAGING = new Set(['t31', 't32', 't33', 't34', 't35'])
 
 export const DISEASES: { name: string; kana: string; alias: string }[] = [
   { name: '高血圧症', kana: 'こうけつあつしょう', alias: 'ht' },
@@ -173,6 +182,11 @@ export const TEST_INDICATIONS: Record<string, string[]> = {
   t29: ['脂肪肝', '肝機能障害'],
   t07: ['肺炎', '心不全'],
   t30: ['便秘症'],
+  t31: ['頭痛'],
+  t32: ['肺炎'],
+  t33: ['脂肪肝', '肝機能障害'],
+  t34: ['頭痛'],
+  t35: ['腰痛症'],
 }
 
 export type OrderSet = { id: string; name: string; kana: string; alias: string; drugs: string[]; tests: string[]; disease?: string }
@@ -339,4 +353,20 @@ export const age = (birth: string) => {
   let a = n.getFullYear() - b.getFullYear()
   if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--
   return a
+}
+
+// PACS にある検査（架空）。本番は DICOMweb（QIDO-RS）で患者IDから検査一覧を取得する
+export type Study = { uid: string; accession: string; date: string; modality: 'CR' | 'CT' | 'MR' | 'US'; description: string; images: number; report: '読影済' | '未読影' }
+
+export const STUDIES: Record<string, Study[]> = {
+  p1: [
+    { uid: '1.2.392.0.0.1.1', accession: 'A2026-0412', date: '2026-08-02', modality: 'CR', description: '胸部X線 正面', images: 1, report: '読影済' },
+    { uid: '1.2.392.0.0.1.2', accession: 'A2025-1130', date: '2025-11-30', modality: 'CT', description: '胸部CT 単純', images: 212, report: '読影済' },
+  ],
+  p2: [{ uid: '1.2.392.0.0.2.1', accession: 'A2026-0301', date: '2026-03-01', modality: 'US', description: '腹部超音波', images: 24, report: '読影済' }],
+  p4: [
+    { uid: '1.2.392.0.0.4.1', accession: 'A2026-0915', date: '2026-09-15', modality: 'MR', description: '頭部MRI・MRA', images: 380, report: '未読影' },
+    { uid: '1.2.392.0.0.4.2', accession: 'A2024-0520', date: '2024-05-20', modality: 'CT', description: '頭部CT 単純', images: 32, report: '読影済' },
+  ],
+  p5: [{ uid: '1.2.392.0.0.5.1', accession: 'A2026-0710', date: '2026-07-10', modality: 'CR', description: '腰椎X線 2方向', images: 2, report: '読影済' }],
 }

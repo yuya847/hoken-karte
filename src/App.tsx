@@ -4,8 +4,8 @@ import { DISEASES, DRUGS, SETS, TESTS } from './data'
 import { LeftPane } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { Icon } from './Icon'
-import { ImageViewer } from './ImageViewer'
-import { TestPicker } from './TestPicker'
+import { PacsPanel } from './PacsPanel'
+import { TestWindow } from './TestWindow'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
 import { OrderRail, type RailId } from './OrderRail'
 import { ChartEditor, PastEditor } from './RightPane'
@@ -26,8 +26,11 @@ export default function App() {
   const [metricsOpen, setMetricsOpen] = useState(false)
   const [view, setView] = useState<View>('reception')
   const [rxOpen, setRxOpen] = useState(false)
-  const rxRef = useRef(false)
-  rxRef.current = rxOpen
+  const [testOpen, setTestOpen] = useState(false)
+  const winRef = useRef({ rx: false, test: false })
+  winRef.current = { rx: rxOpen, test: testOpen }
+  // ✗で閉じた患者タブ（もう一度開けば戻る）
+  const [closedTabs, setClosedTabs] = useState<Set<string>>(new Set())
   const [saveOk, setSaveOk] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
   const [, tick] = useState(0)
@@ -38,6 +41,10 @@ export default function App() {
   const draft = (patient && state.drafts[patient.id]) || emptyDraft()
 
   useEffect(() => setSaveOk(saveState(state)), [state])
+  useEffect(() => {
+    const id = state.currentId
+    if (id) setClosedTabs((cur) => (cur.has(id) ? new Set([...cur].filter((x) => x !== id)) : cur))
+  }, [state.currentId])
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 1000)
     return () => clearInterval(t)
@@ -57,6 +64,7 @@ export default function App() {
     const ops = s.session?.ops ?? 0
     const next = s.patients.find((x) => x.status === '待ち' && x.id !== p.id)
     setRxOpen(false)
+    setTestOpen(false)
     dispatch({ type: 'confirm' })
     setToast(`${p.name} を確定（${secs}秒・${ops}操作）${next ? ` → 次：${next.name}` : ' → 待ち患者なし'}`)
   }
@@ -84,14 +92,17 @@ export default function App() {
     setRxOpen(true)
   }
 
+  // 検査ウインドウ（右端の検査アイコン・オーダー欄の「検査」・⌘E）
+  const openTests = () => {
+    if (!stateRef.current.currentId) return
+    dispatch({ type: 'mode', mode: { kind: 'chart' } })
+    setTestOpen(true)
+  }
+
   const selectRail = (id: RailId) => {
     const s = stateRef.current
     if (id === 'letter') return toggleLetter()
-    if (id === 'test')
-      return dispatch({
-        type: 'mode',
-        mode: s.mode.kind === 'tests' ? { kind: 'chart' } : { kind: 'tests' },
-      })
+    if (id === 'test') return openTests()
     if (id === 'image')
       return dispatch({
         type: 'mode',
@@ -119,7 +130,8 @@ export default function App() {
       }
       if (e.key === 'Escape') {
         setMetricsOpen(false)
-        if (rxRef.current) return hit(() => setRxOpen(false))
+        if (winRef.current.rx) return hit(() => setRxOpen(false))
+        if (winRef.current.test) return hit(() => setTestOpen(false))
         if (s.mode.kind !== 'chart' && s.mode.kind !== 'letter') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
         return
       }
@@ -131,6 +143,7 @@ export default function App() {
       if (mod && k === 'd') return hit(() => dispatch({ type: 'do' }))
       if (mod && k === 'l') return hit(toggleLetter)
       if (mod && k === 'p') return hit(openRx)
+      if (mod && k === 'e') return hit(openTests)
       if (mod && e.key === 'Enter') return hit(() => confirm())
     }
     const onClick = () => {
@@ -259,7 +272,17 @@ export default function App() {
           </button>
         </header>
 
-        <PatientTabs view={view} patients={state.patients} currentId={state.currentId} dispatch={dispatch} />
+        <PatientTabs
+          view={view}
+          patients={state.patients}
+          currentId={state.currentId}
+          closed={closedTabs}
+          onClose={(id) => {
+            setClosedTabs((cur) => new Set(cur).add(id))
+            if (stateRef.current.currentId === id) dispatch({ type: 'close' })
+          }}
+          dispatch={dispatch}
+        />
 
         {patient ? (
           <>
@@ -325,20 +348,18 @@ export default function App() {
                 <div className="card min-h-0 flex-1 overflow-hidden">
                   {mode.kind === 'letter' ? (
                     <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
-                  ) : mode.kind === 'tests' ? (
-                    <TestPicker patient={patient} draft={draft} dispatch={dispatch} />
                   ) : mode.kind === 'images' ? (
-                    <ImageViewer key={patient.id} patientName={patient.name} />
+                    <PacsPanel patient={patient} draft={draft} onClose={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} />
                   ) : mode.kind === 'diseases' ? (
                     <DiseasePanel patient={patient} draft={draft} dispatch={dispatch} />
                   ) : editing ? (
                     <PastEditor key={editing.id} encounter={editing} dispatch={dispatch} />
                   ) : (
-                    <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} onOpenRx={openRx} />
+                    <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} onOpenRx={openRx} onOpenTests={openTests} />
                   )}
                 </div>
                 <OrderRail
-                  active={mode.kind === 'letter' ? 'letter' : mode.kind === 'images' ? 'image' : mode.kind === 'tests' ? 'test' : mode.kind === 'diseases' ? 'disease' : null}
+                  active={mode.kind === 'letter' ? 'letter' : mode.kind === 'images' ? 'image' : testOpen ? 'test' : mode.kind === 'diseases' ? 'disease' : null}
                   onSelect={selectRail}
                 />
               </div>
@@ -352,6 +373,7 @@ export default function App() {
           {[
             ['⌘K', '検索・追加'],
             ['⌘P', '処方'],
+            ['⌘E', '検査'],
             ['⌘D', 'Do処方'],
             ['⌘⇧D', '前回記載コピー'],
             ['⌘L', '紹介状'],
@@ -372,6 +394,7 @@ export default function App() {
       </div>
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
+      {testOpen && patient && <TestWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setTestOpen(false)} />}
       {rxOpen && patient && <RxWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setRxOpen(false)} />}
       {metricsOpen && <MetricsPanel state={state} dispatch={dispatch} onClose={() => setMetricsOpen(false)} />}
       {toast && (
@@ -384,34 +407,47 @@ export default function App() {
   )
 }
 
-// 受付一覧と診察対象の患者を切り替えるタブ（ブラウザ型）
-function PatientTabs({ view, patients, currentId, dispatch }: { view: View; patients: Patient[]; currentId: string | null; dispatch: (a: Action) => void }) {
-  const open = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
+// 受付一覧と診察対象の患者を切り替えるタブ（ブラウザ型）。✗で閉じたタブは、その患者をもう一度開くまで出さない
+type TabsProps = { view: View; patients: Patient[]; currentId: string | null; closed: Set<string>; onClose: (id: string) => void; dispatch: (a: Action) => void }
+
+function PatientTabs({ view, patients, currentId, closed, onClose, dispatch }: TabsProps) {
+  const waiting = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
+  const open = patients.filter((p) => p.id === currentId || ((p.status === '待ち' || p.status === '診察中') && !closed.has(p.id)))
   const home = currentId === null
   const nav = NAV.find((n) => n.id === view) ?? NAV[1]
   const goHome = () => dispatch({ type: 'close' })
   const openP = (id: string) => dispatch({ type: 'open', patientId: id })
   const tab = (on: boolean) =>
-    `relative -mb-px flex h-10 max-w-60 touch:h-12 shrink-0 items-center gap-2 rounded-t-xl px-3 text-sm transition-colors ${
+    `relative -mb-px flex h-10 max-w-64 touch:h-12 shrink-0 items-center rounded-t-xl text-sm transition-colors ${
       on ? 'z-10 bg-page font-medium text-ink' : 'text-ink-2 hover:bg-white/60'
     }`
   return (
     <div role="tablist" className="no-print flex shrink-0 items-end gap-0.5 overflow-x-auto bg-surface-2 px-2 pt-2">
-      <button role="tab" aria-selected={home} onClick={goHome} className={tab(home)}>
+      <button role="tab" aria-selected={home} onClick={goHome} className={`${tab(home)} gap-2 px-3`}>
         <Icon name={nav.icon} fill={home} size={18} />
-        {nav.label} {view === 'reception' && <span className="text-xs text-ink-2">{open.length}</span>}
+        {nav.label} {view === 'reception' && <span className="text-xs text-ink-2">{waiting.length}</span>}
       </button>
       {open.map((p, i) => {
         const on = p.id === currentId
         const prevOn = i === 0 ? home : open[i - 1].id === currentId
         return (
-          <button key={p.id} role="tab" aria-selected={on} onClick={() => openP(p.id)} className={tab(on)}>
+          <div key={p.id} className={`group ${tab(on)}`}>
             {!on && !prevOn && <span className="absolute top-2.5 left-0 h-5 w-px bg-outline-var" />}
-            <PatientIcon patient={p} size={20} />
-            <span className="truncate">{p.name}</span>
-            <span className="text-xs text-ink-2">{ageSex(p)}</span>
-            {p.status === '診察中' && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />}
-          </button>
+            <button role="tab" aria-selected={on} onClick={() => openP(p.id)} className="flex h-full min-w-0 items-center gap-2 pr-1 pl-3">
+              <PatientIcon patient={p} size={20} />
+              <span className="truncate">{p.name}</span>
+              <span className="text-xs whitespace-nowrap text-ink-2">{ageSex(p)}</span>
+              {p.status === '診察中' && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />}
+            </button>
+            <button
+              onClick={() => onClose(p.id)}
+              aria-label={`${p.name}のタブを閉じる`}
+              title="タブを閉じる"
+              className="mr-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-ink/10 hover:text-ink touch:h-9 touch:w-9"
+            >
+              <Icon name="close" size={16} />
+            </button>
+          </div>
         )
       })}
     </div>
