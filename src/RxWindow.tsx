@@ -35,20 +35,20 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
   }
 
   return (
-    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-3" onPointerDown={onClose}>
+    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-3 max-md:p-0" onPointerDown={onClose}>
       <div
         role="dialog"
         aria-label="処方"
-        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-[28px] bg-surface-1 shadow-2xl"
+        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-[28px] bg-surface-1 shadow-2xl max-md:h-full max-md:rounded-none max-md:pt-[env(safe-area-inset-top)]"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-6 pt-5 pb-3">
+        <div className="flex flex-wrap items-center gap-3 px-6 pt-5 pb-3 max-md:gap-2 max-md:px-4 max-md:pt-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rx-ctr text-rx">
             <Icon name="medication" size={22} />
           </span>
-          <h2 className="text-[22px]">処方</h2>
+          <h2 className="text-[22px] whitespace-nowrap">処方</h2>
           {patient.allergies.length > 0 && (
-            <span className="flex items-center gap-1 rounded-lg bg-error-ctr px-2.5 py-1 text-xs font-medium text-error">
+            <span className="flex items-center gap-1 rounded-lg bg-error-ctr px-2.5 py-1 text-xs font-medium text-error max-md:order-last max-md:w-full">
               <Icon name="warning" fill size={16} />
               アレルギー：{patient.allergies.join('、')}
             </span>

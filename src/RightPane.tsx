@@ -32,7 +32,7 @@ function SectionTitle({ icon, label, tone, children }: { icon: string; label: st
       <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${tone}`}>
         <Icon name={icon} size={18} />
       </span>
-      <span className="flex-1 text-base font-medium">{label}</span>
+      <span className="flex-1 text-base font-medium whitespace-nowrap">{label}</span>
       {children}
     </div>
   )
@@ -55,7 +55,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <section className="px-6 pt-5 pb-4">
+      <section className="px-6 pt-5 pb-4 max-md:px-4 max-md:pt-4">
         <SectionTitle icon="edit_note" label="今回の記載" tone="bg-primary-ctr text-on-primary-ctr">
           <button onClick={() => dispatch({ type: 'copyLastText' })} className="btn btn-sm btn-text">
             <Icon name="content_copy" size={18} />
@@ -67,7 +67,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
           value={draft.text}
           onChange={(e) => dispatch({ type: 'text', text: e.target.value })}
           placeholder={`自由記載（主訴・所見・評価・方針）\n${VITALS_HINT}`}
-          className="field h-48 resize-y px-4 py-3 text-[15px] leading-relaxed"
+          className="field h-48 resize-y px-4 py-3 text-[15px] leading-relaxed max-md:h-40"
         />
         <div className="mt-1.5 flex min-h-5 items-center gap-1 text-xs text-ink-2">
           {detected && (
@@ -79,11 +79,11 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
         </div>
       </section>
 
-      <div className="mx-6 border-t border-surface-2" />
+      <div className="mx-6 border-t border-surface-2 max-md:mx-4" />
 
-      <section className="px-6 py-5">
+      <section className="px-6 py-5 max-md:px-4">
         <SectionTitle icon="assignment" label="オーダー" tone="bg-surface-2 text-ink-2">
-          <button onClick={onOpenRx} className="btn btn-sm btn-tonal">
+          <button onClick={onOpenRx} className="btn btn-sm btn-tonal max-md:hidden">
             <Icon name="medication" size={18} />
             処方 <span className="kbd">⌘P</span>
           </button>
@@ -91,7 +91,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
             <Icon name="replay" size={18} />
             Do処方 <span className="kbd">⌘D</span>
           </button>
-          <button onClick={onOpenTests} className="btn btn-sm btn-tonal">
+          <button onClick={onOpenTests} className="btn btn-sm btn-tonal max-md:hidden">
             <Icon name="biotech" size={18} />
             検査 <span className="kbd">⌘E</span>
           </button>
@@ -111,7 +111,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
               <div className="min-w-0 flex-1">
                 {g.map((r) => (
                   <div key={r.id} className="flex items-center gap-2">
-                    <button onClick={onOpenRx} className="min-w-0 flex-1 truncate py-1 text-left font-medium hover:underline" title="処方ウインドウで直す">
+                    <button onClick={onOpenRx} className="min-w-0 flex-1 truncate py-1 text-left font-medium hover:underline max-md:whitespace-normal" title="処方ウインドウで直す">
                       {r.name}
                     </button>
                     {r.noGeneric && <span className="rounded-md bg-white px-1.5 py-0.5 text-[11px] whitespace-nowrap text-ink-2">後発変更不可</span>}

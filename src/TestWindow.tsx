@@ -23,14 +23,14 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
 
   const toggle = (code: string) => dispatch({ type: 'toggleTest', code })
   return (
-    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-3" onPointerDown={onClose}>
+    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-3 max-md:p-0" onPointerDown={onClose}>
       <div
         role="dialog"
         aria-label="検査オーダー"
-        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-[28px] bg-surface-1 shadow-2xl"
+        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-[28px] bg-surface-1 shadow-2xl max-md:h-full max-md:rounded-none max-md:pt-[env(safe-area-inset-top)]"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-6 pt-5 pb-3">
+        <div className="flex items-center gap-3 px-6 pt-5 pb-3 max-md:px-4 max-md:pt-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-lab-ctr text-lab">
             <Icon name="biotech" size={20} />
           </span>
@@ -42,7 +42,7 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
           </button>
         </div>
 
-        <div className="px-6">
+        <div className="px-6 max-md:px-4">
           <div className="relative">
             <Icon name="filter_list" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-2" />
             <input
@@ -63,9 +63,9 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
             {last && (
-              <button onClick={() => last.tests.forEach((t) => !selected.has(t.code) && toggle(t.code))} className="chip">
+              <button onClick={() => last.tests.forEach((t) => !selected.has(t.code) && toggle(t.code))} className="chip max-w-full">
                 <Icon name="history" size={18} />
-                前回と同じ（{last.date}：{last.tests.map((t) => t.name).join('、')}）
+                <span className="truncate">前回と同じ（{last.date}：{last.tests.map((t) => t.name).join('、')}）</span>
               </button>
             )}
             {testSets.map((x) => (

@@ -21,33 +21,55 @@ const FALLBACK: Record<RailId, React.ReactNode> = {
   image: <path d="M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01" />,
 }
 
+function RailIcon({ id, on }: { id: RailId; on: boolean }) {
+  const url = iconUrl(id)
+  const r = RAIL.find((x) => x.id === id)!
+  return url ? (
+    <span className={`flex h-10 w-14 items-center justify-center rounded-full transition-colors ${on ? 'bg-secondary-ctr' : 'group-hover:bg-ink/8'}`}>
+      <img src={url} alt="" className="h-7 w-7 rounded-md" />
+    </span>
+  ) : (
+    <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${r.tone}`}>
+      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        {FALLBACK[id]}
+      </svg>
+    </span>
+  )
+}
+
 export function OrderRail({ active, onSelect }: { active: RailId | null; onSelect: (id: RailId) => void }) {
   return (
-    <nav className="no-print flex w-[68px] shrink-0 flex-col items-center gap-2 pt-2">
-      {RAIL.map((r) => {
-        const url = iconUrl(r.id)
-        return (
-          <button
-            key={r.id}
-            onClick={() => onSelect(r.id)}
-            title={r.hint ? `${r.label}（${r.hint}）` : r.label}
-            className={`group flex w-16 flex-col items-center gap-1 py-1 text-[11px] font-medium ${active === r.id ? 'text-on-secondary-ctr' : 'text-ink-2'}`}
-          >
-            {url ? (
-              <span className={`flex h-10 w-14 items-center justify-center rounded-full transition-colors ${active === r.id ? 'bg-secondary-ctr' : 'group-hover:bg-ink/8'}`}>
-                <img src={url} alt="" className="h-7 w-7 rounded-md" />
-              </span>
-            ) : (
-              <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${r.tone}`}>
-                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  {FALLBACK[r.id]}
-                </svg>
-              </span>
-            )}
-            <span>{r.label}</span>
-          </button>
-        )
-      })}
+    <nav className="no-print flex w-[68px] shrink-0 flex-col items-center gap-2 pt-2 max-md:hidden">
+      {RAIL.map((r) => (
+        <button
+          key={r.id}
+          onClick={() => onSelect(r.id)}
+          title={r.hint ? `${r.label}（${r.hint}）` : r.label}
+          className={`group flex w-16 flex-col items-center gap-1 py-1 text-[11px] font-medium ${active === r.id ? 'text-on-secondary-ctr' : 'text-ink-2'}`}
+        >
+          <RailIcon id={r.id} on={active === r.id} />
+          <span>{r.label}</span>
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+// スマホではオーダーの列を画面の下に並べる（親指で押せる位置）
+export function OrderBar({ active, onSelect }: { active: RailId | null; onSelect: (id: RailId) => void }) {
+  return (
+    <nav aria-label="オーダー" className="no-print flex shrink-0 border-t border-outline-var bg-surface-1 pb-[env(safe-area-inset-bottom)] md:hidden">
+      {RAIL.map((r) => (
+        <button
+          key={r.id}
+          onClick={() => onSelect(r.id)}
+          aria-pressed={active === r.id}
+          className={`group flex h-16 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${active === r.id ? 'text-on-secondary-ctr' : 'text-ink-2'}`}
+        >
+          <RailIcon id={r.id} on={active === r.id} />
+          {r.label}
+        </button>
+      ))}
     </nav>
   )
 }
