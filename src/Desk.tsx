@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { Icon } from './Icon'
+import { BrandIcon } from './BrandMark'
 import { saveIntegrations, useIntegrations, type Integrations as Cfg } from './integrations'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
 import type { Action } from './store'
@@ -27,8 +28,8 @@ export const STATUS_STYLE: Record<QueueStatus, string> = {
 export function NavRail({ view, slim, onSelect }: { view: View | null; slim: boolean; onSelect: (v: View) => void }) {
   return (
     <aside aria-label="メニュー" className={`no-print flex shrink-0 flex-col items-center gap-1 pt-3 pb-3 max-md:hidden ${slim ? 'w-14' : 'w-[76px]'}`}>
-      <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white" title="保険診療カルテ">
-        <Icon name="clinical_notes" fill size={24} />
+      <span className="mb-3" title="ファストカルテ 保険診療">
+        <BrandIcon size={40} />
       </span>
       {NAV.map((n) => {
         const on = view === n.id

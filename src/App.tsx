@@ -4,6 +4,7 @@ import { DISEASES, DRUGS, SETS, TESTS } from './data'
 import { LeftPane } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { Icon } from './Icon'
+import { BrandWordmark } from './BrandMark'
 import { daysText, doseText, usageText } from './rxFormat'
 import { PacsPanel } from './PacsPanel'
 import { TestWindow } from './TestWindow'
@@ -270,7 +271,10 @@ export default function App() {
       <NavRail view={patient ? null : view} slim={!!patient} onSelect={selectView} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="no-print flex h-16 shrink-0 items-center gap-2 pr-3 max-md:h-12 max-md:pl-3">
-          <span className="hidden pr-2 text-[22px] text-ink-2 lg:inline">保険診療カルテ</span>
+          <span className="flex items-center gap-2 pr-2">
+            <BrandWordmark height={22} />
+            <span className="rounded-md bg-primary-ctr px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-on-primary-ctr">保険診療</span>
+          </span>
           <span className="hidden rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-2 xl:inline">試作・架空データ</span>
 
           <span className="flex-1" />
