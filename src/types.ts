@@ -43,7 +43,7 @@ export type Letter = {
   createdAt: string
 }
 
-export type Revision = { version: number; savedAt: string; text: string; vitals: Vitals }
+export type Revision = { version: number; savedAt: string; text: string; vitals: Vitals; rx?: RxItem[]; tests?: TestOrder[] }
 
 export type Encounter = {
   id: string
@@ -99,4 +99,4 @@ export type RightMode =
   | { kind: 'letter' }
   | { kind: 'images' }
   | { kind: 'diseases' }
-  | { kind: 'edit-past'; encounterId: string }
+  | { kind: 'edit-past'; encounterId: string; focus?: 'orders' }

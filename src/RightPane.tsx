@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { DRUGS, SETS, TESTS } from './data'
 import { vitalsLine } from './LeftPane'
 import { Icon } from './Icon'
-import { daysText, doseText, groupRp, usageText } from './rxFormat'
+import { daysText, doseText, groupRp, rxLine, usageText } from './rxFormat'
+import { RxCard } from './RxWindow'
 import { DxStrip } from './DiseasePanel'
 import { OrderSearch, type SearchItem } from './OrderSearch'
 import type { Action } from './store'
@@ -147,48 +148,90 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
   )
 }
 
-export function PastEditor({ encounter, dispatch }: { encounter: Encounter; dispatch: (a: Action) => void }) {
+// 過去の記録の訂正。記載・バイタルに加えて処方・検査も直せる（左の過去オーダーをダブルクリックすると処方・検査から開く）。
+// 保存すると版が1つ上がり、元の記載・オーダーは履歴に残る
+export function PastEditor({ encounter, focus, dispatch }: { encounter: Encounter; focus?: 'orders'; dispatch: (a: Action) => void }) {
   const [text, setText] = useState(encounter.text)
+  const [rx, setRx] = useState(encounter.rx)
+  const [tests, setTests] = useState(encounter.tests)
   const ref = useRef<HTMLTextAreaElement>(null)
-  useEffect(() => ref.current?.focus(), [])
+  const ordersRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (focus === 'orders') ordersRef.current?.scrollIntoView({ block: 'start' })
+    else ref.current?.focus()
+  }, [focus])
   // 記載にバイタルが書かれていればそれを優先し、なければ元の値を残す
   const vitals = { ...encounter.vitals, ...parseVitals(text) }
 
   return (
-    <div className="flex h-full flex-col gap-3 px-6 py-5">
-      <div className="flex items-center gap-3">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-3 px-6 pt-5 pb-3 max-md:px-4">
         <button onClick={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} className="icon-btn" title="やめる（Esc）">
           <Icon name="arrow_back" />
         </button>
-        <h2 className="text-[22px]">
-          {encounter.date} {encounter.kind} の記載を訂正
+        <h2 className="flex-1 text-[22px] max-md:text-lg">
+          {encounter.date} {encounter.kind} を訂正
         </h2>
       </div>
-      <div className="flex items-center gap-2 rounded-xl bg-doc-ctr px-3 py-2 text-sm text-doc">
-        <Icon name="history" size={18} />
-        保存すると v{encounter.version + 1} になり、元の版は履歴に残ります
-      </div>
-      {vitalsLine(vitals) && <div className="text-xs tabular-nums text-ink-2">バイタル：{vitalsLine(vitals)}</div>}
-      <textarea ref={ref} value={text} onChange={(e) => setText(e.target.value)} className="field min-h-48 flex-1 resize-none px-4 py-3 text-[15px] leading-relaxed" />
-      {encounter.history.length > 0 && (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-ink-2">過去の版（{encounter.history.length}）</summary>
-          {encounter.history.map((h) => (
-            <div key={h.version} className="mt-1.5 rounded-xl bg-surface-1 p-3">
-              <div className="text-xs text-ink-2">
-                v{h.version} · {new Date(h.savedAt).toLocaleString('ja-JP')}まで
-              </div>
-              <div className="text-xs tabular-nums">{vitalsLine(h.vitals)}</div>
-              <div className="whitespace-pre-wrap">{h.text}</div>
-            </div>
+      <div className="flex-1 space-y-3 overflow-y-auto px-6 pb-3 max-md:px-4">
+        <div className="flex items-center gap-2 rounded-xl bg-doc-ctr px-3 py-2 text-sm text-doc">
+          <Icon name="history" size={18} />
+          保存すると v{encounter.version + 1} になり、元の版は履歴に残ります
+        </div>
+        {vitalsLine(vitals) && <div className="text-xs tabular-nums text-ink-2">バイタル：{vitalsLine(vitals)}</div>}
+        <textarea ref={ref} value={text} onChange={(e) => setText(e.target.value)} className="field h-48 resize-y px-4 py-3 text-[15px] leading-relaxed" />
+
+        <section ref={ordersRef} className="scroll-mt-2 space-y-2">
+          <SectionTitle icon="assignment" label="この日のオーダー" tone="bg-surface-2 text-ink-2" />
+          {rx.length === 0 && tests.length === 0 && <div className="rounded-xl border border-dashed border-outline-var px-4 py-3 text-sm text-ink-2">オーダーなし</div>}
+          {rx.map((r) => (
+            <RxCard
+              key={r.id}
+              r={r}
+              onChange={(patch) => setRx((cur) => cur.map((x) => (x.id === r.id ? { ...x, ...patch } : x)))}
+              onRemove={() => setRx((cur) => cur.filter((x) => x.id !== r.id))}
+            />
           ))}
-        </details>
-      )}
-      <div className="flex justify-end gap-2">
+          {tests.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {tests.map((t) => (
+                <span key={t.id} className="flex h-8 items-center gap-1 rounded-lg bg-lab-ctr pr-1 pl-3 text-[13px] font-medium text-lab">
+                  {t.name}
+                  <button onClick={() => setTests((cur) => cur.filter((x) => x.id !== t.id))} className="icon-btn icon-btn-sm" aria-label={`${t.name}を外す`}>
+                    <Icon name="close" size={16} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {encounter.history.length > 0 && (
+          <details className="text-sm">
+            <summary className="cursor-pointer text-ink-2">過去の版（{encounter.history.length}）</summary>
+            {encounter.history.map((h) => (
+              <div key={h.version} className="mt-1.5 rounded-xl bg-surface-1 p-3">
+                <div className="text-xs text-ink-2">
+                  v{h.version} · {new Date(h.savedAt).toLocaleString('ja-JP')}まで
+                </div>
+                <div className="text-xs tabular-nums">{vitalsLine(h.vitals)}</div>
+                <div className="whitespace-pre-wrap">{h.text}</div>
+                {h.rx?.map((r) => (
+                  <div key={r.id} className="text-xs text-rx">
+                    {rxLine(r)}
+                  </div>
+                ))}
+                {!!h.tests?.length && <div className="text-xs text-lab">{h.tests.map((t) => t.name).join('、')}</div>}
+              </div>
+            ))}
+          </details>
+        )}
+      </div>
+      <div className="flex justify-end gap-2 border-t border-surface-2 px-6 py-3 max-md:px-4">
         <button onClick={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} className="btn btn-text">
           やめる
         </button>
-        <button onClick={() => dispatch({ type: 'savePast', encounterId: encounter.id, text, vitals })} className="btn btn-filled">
+        <button onClick={() => dispatch({ type: 'savePast', encounterId: encounter.id, text, vitals, rx, tests })} className="btn btn-filled">
           <Icon name="save" size={20} />
           訂正を保存
         </button>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { CommandPalette, type Command } from './CommandPalette'
 import { DISEASES, DRUGS, SETS, TESTS } from './data'
-import { LeftPane } from './LeftPane'
+import { LeftPane, type DoDrag } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { Icon } from './Icon'
 import { BrandWordmark } from './BrandMark'
@@ -22,6 +22,9 @@ const GOAL_OPS = 15
 
 const fmtSec = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
+const dropLabel = (parts: DoDrag['parts']) =>
+  parts.length === 3 ? '記載・処方・検査' : parts.map((p) => ({ text: '記載', rx: '処方', tests: '検査' })[p]).join('・')
+
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, loadState)
   const [palette, setPalette] = useState(false)
@@ -41,6 +44,9 @@ export default function App() {
   closingRef.current = closing
   // スマホ（md未満）では過去の記録と今回の記載を切り替えて1つずつ出す
   const [phonePane, setPhonePane] = useState<'past' | 'now'>('now')
+  // 左の過去の記録をドラッグしている間だけ、右に落とし先を出す
+  const [doDrag, setDoDrag] = useState<DoDrag | null>(null)
+  const [dropHover, setDropHover] = useState(false)
   const [saveOk, setSaveOk] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
   const [, tick] = useState(0)
@@ -386,17 +392,48 @@ export default function App() {
                         })
                       : dispatch({ type: 'insertText', text })
                   }}
-                  onEdit={(id) => {
+                  onEdit={(id, focus) => {
                     setPhonePane('now')
                     dispatch({
                       type: 'mode',
-                      mode: { kind: 'edit-past', encounterId: id },
+                      mode: { kind: 'edit-past', encounterId: id, focus },
                     })
+                  }}
+                  onDrag={(d) => {
+                    setDoDrag(d)
+                    setDropHover(false)
                   }}
                 />
               </div>
               <div className={`flex min-h-0 flex-1 gap-2 lg:flex-[3] ${phonePane === 'now' ? '' : 'max-md:hidden'}`}>
-                <div className="card min-h-0 flex-1 overflow-hidden">
+                <div className="card relative min-h-0 flex-1 overflow-hidden">
+                  {doDrag && (
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'copy'
+                        setDropHover(true)
+                      }}
+                      onDragLeave={() => setDropHover(false)}
+                      onDrop={(e) => {
+                        e.preventDefault()
+                        dispatch({ type: 'mode', mode: { kind: 'chart' } })
+                        dispatch({ type: 'do', encounterId: doDrag.encounterId, parts: doDrag.parts })
+                        const date = patient.encounters.find((x) => x.id === doDrag.encounterId)?.date
+                        setToast(`${date} の${dropLabel(doDrag.parts)}をDoしました`)
+                        setDoDrag(null)
+                        setDropHover(false)
+                      }}
+                      className={`absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] border-2 border-dashed backdrop-blur-[1px] transition-colors ${
+                        dropHover ? 'border-primary bg-primary-ctr/70' : 'border-outline bg-white/70'
+                      }`}
+                    >
+                      <span className="pointer-events-none flex items-center gap-2 rounded-full bg-white px-5 py-3 text-base font-medium shadow-md">
+                        <Icon name="replay" />
+                        ここに落とすと{dropLabel(doDrag.parts)}をDo
+                      </span>
+                    </div>
+                  )}
                   {mode.kind === 'letter' ? (
                     <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
                   ) : mode.kind === 'images' ? (
@@ -404,7 +441,7 @@ export default function App() {
                   ) : mode.kind === 'diseases' ? (
                     <DiseasePanel patient={patient} draft={draft} dispatch={dispatch} />
                   ) : editing ? (
-                    <PastEditor key={editing.id} encounter={editing} dispatch={dispatch} />
+                    <PastEditor key={editing.id} encounter={editing} focus={mode.kind === 'edit-past' ? mode.focus : undefined} dispatch={dispatch} />
                   ) : (
                     <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} onOpenRx={openRx} onOpenTests={openTests} />
                   )}

@@ -3,6 +3,8 @@ import { applyPlan, planDiseases } from './orders'
 import { parseVitals } from './vitals'
 import type { Disease, Draft, Encounter, Patient, QueueStatus, RightMode, RxItem, SessionMetric, TestOrder, Vitals } from './types'
 
+export type DoPart = 'text' | 'rx' | 'tests'
+
 export type State = {
   patients: Patient[]
   currentId: string | null
@@ -17,7 +19,7 @@ export type Action =
   | { type: 'op' }
   | { type: 'text'; text: string }
   | { type: 'insertText'; text: string }
-  | { type: 'do'; encounterId?: string }
+  | { type: 'do'; encounterId?: string; parts?: DoPart[] }
   | { type: 'copyLastText' }
   | { type: 'addRx'; drugId: string }
   | { type: 'updateRx'; id: string; patch: Partial<RxItem> }
@@ -32,7 +34,7 @@ export type Action =
   | { type: 'applySet'; setId: string }
   | { type: 'letter'; patch: Partial<NonNullable<Draft['letter']>> | null }
   | { type: 'mode'; mode: RightMode }
-  | { type: 'savePast'; encounterId: string; text: string; vitals: Vitals }
+  | { type: 'savePast'; encounterId: string; text: string; vitals: Vitals; rx: RxItem[]; tests: TestOrder[] }
   | { type: 'confirm' }
   | { type: 'paid'; patientId: string }
   | { type: 'status'; patientId: string; status: QueueStatus }
@@ -119,7 +121,14 @@ export function reducer(s: State, a: Action): State {
       if (!p) return s
       const src = a.encounterId ? p.encounters.find((e) => e.id === a.encounterId) : latestWith(p, (e) => e.rx.length > 0)
       if (!src) return s
-      return mapDraft(s, (d) => ({ ...d, rx: mergeRx(d.rx, src.rx) }))
+      // parts を指定しなければ処方だけ（⌘D・Doボタン）。過去の記録を右へドラッグしたときは記載・検査も
+      const parts = a.parts ?? ['rx']
+      return mapDraft(s, (d) => ({
+        ...d,
+        text: parts.includes('text') && src.text ? (d.text ? `${d.text}\n${src.text}` : src.text) : d.text,
+        rx: parts.includes('rx') ? mergeRx(d.rx, src.rx) : d.rx,
+        tests: parts.includes('tests') ? mergeTests(d.tests, src.tests) : d.tests,
+      }))
     }
     case 'copyLastText': {
       const p = s.patients.find((x) => x.id === s.currentId)
@@ -189,8 +198,10 @@ export function reducer(s: State, a: Action): State {
                   ...e,
                   text: a.text,
                   vitals: a.vitals,
+                  rx: a.rx,
+                  tests: a.tests,
                   version: e.version + 1,
-                  history: [...e.history, { version: e.version, savedAt: new Date().toISOString(), text: e.text, vitals: e.vitals }],
+                  history: [...e.history, { version: e.version, savedAt: new Date().toISOString(), text: e.text, vitals: e.vitals, rx: e.rx, tests: e.tests }],
                 }
               : e,
           ),

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Icon } from './Icon'
 import { rxLine } from './rxFormat'
+import type { DoPart } from './store'
 import type { Encounter, Patient, Vitals } from './types'
 
 export type Filter = '全て' | '記載' | '処方' | '検査' | '文書'
@@ -28,15 +29,19 @@ export const encounterSummary = (e: Encounter) =>
     .filter(Boolean)
     .join('\n')
 
+// 過去の記録を右の記載欄へドラッグしてDoする（カードごと＝記載・処方・検査、処方・検査・記載の欄だけでも）
+export type DoDrag = { encounterId: string; parts: DoPart[] }
+
 type Props = {
   patient: Patient
   selectedId: string | null
   onDo: (encounterId: string) => void
   onQuote: (text: string) => void
-  onEdit: (encounterId: string) => void
+  onEdit: (encounterId: string, focus?: 'orders') => void
+  onDrag: (d: DoDrag | null) => void
 }
 
-export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) {
+export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }: Props) {
   const [filter, setFilter] = useState<Filter>('全て')
   const list = [...patient.encounters].sort((a, b) => b.date.localeCompare(a.date))
 
@@ -66,9 +71,21 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
           const showTests = (filter === '全て' || filter === '検査') && e.tests.length > 0
           const showDocs = (filter === '全て' || filter === '文書') && e.letters.length > 0
           if (!showText && !showRx && !showTests && !showDocs) return null
+          const drag = (parts: DoPart[]) => ({
+            draggable: true,
+            onDragStart: (ev: React.DragEvent) => {
+              ev.stopPropagation()
+              ev.dataTransfer.effectAllowed = 'copy'
+              ev.dataTransfer.setData('text/plain', encounterSummary(e))
+              onDrag({ encounterId: e.id, parts })
+            },
+            onDragEnd: () => onDrag(null),
+          })
           return (
             <div
               key={e.id}
+              {...drag(['text', 'rx', 'tests'])}
+              title="右へドラッグするとこの日の記載・処方・検査をDo"
               className={`group rounded-2xl p-4 transition-colors ${selectedId === e.id ? 'bg-primary-ctr/60 ring-2 ring-primary' : 'bg-surface-1 hover:bg-surface-2'}`}
             >
               <div className="mb-2 flex items-center gap-2">
@@ -92,13 +109,18 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
                 </div>
               </div>
               {showText && (
-                <>
+                <div {...drag(['text'])} title="右へドラッグで記載をコピー" className="cursor-grab active:cursor-grabbing">
                   {vitalsLine(e.vitals) && <div className="mb-1 text-xs tabular-nums text-ink-2">{vitalsLine(e.vitals)}</div>}
                   <div className="text-sm leading-relaxed whitespace-pre-wrap">{e.text || <span className="text-ink-2">（記載なし）</span>}</div>
-                </>
+                </div>
               )}
               {showRx && (
-                <div className="mt-2.5 rounded-xl bg-white px-3 py-2 text-sm">
+                <div
+                  {...drag(['rx'])}
+                  onDoubleClick={() => onEdit(e.id, 'orders')}
+                  title="ダブルクリックで訂正・右へドラッグで処方をDo"
+                  className="mt-2.5 cursor-grab rounded-xl bg-white px-3 py-2 text-sm hover:ring-2 hover:ring-rx/30 active:cursor-grabbing"
+                >
                   <div className="mb-0.5 flex items-center gap-1 text-xs font-medium text-rx">
                     <Icon name="medication" size={16} />
                     処方
@@ -111,7 +133,12 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit }: Props) 
                 </div>
               )}
               {showTests && (
-                <div className="mt-2 flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm">
+                <div
+                  {...drag(['tests'])}
+                  onDoubleClick={() => onEdit(e.id, 'orders')}
+                  title="ダブルクリックで訂正・右へドラッグで検査をDo"
+                  className="mt-2 flex cursor-grab items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm hover:ring-2 hover:ring-lab/30 active:cursor-grabbing"
+                >
                   <Icon name="biotech" size={16} className="text-lab" />
                   <span>
                     {e.tests.map((t, i) => (

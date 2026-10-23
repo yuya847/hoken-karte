@@ -139,7 +139,7 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
                   </div>
                   <div className="space-y-1.5">
                     {g.map((r) => (
-                      <RxCard key={r.id} r={r} dispatch={dispatch} />
+                      <RxCard key={r.id} r={r} onChange={(patch) => dispatch({ type: 'updateRx', id: r.id, patch })} onRemove={() => dispatch({ type: 'removeRx', id: r.id })} />
                     ))}
                   </div>
                 </div>
@@ -153,8 +153,8 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
 }
 
 // 1回量・1日の回数・タイミング・日数を分けて入れる（富士通カルテの「1回1錠（1日3錠）／1日3回 毎食後／5日分」）
-function RxCard({ r, dispatch }: { r: RxItem; dispatch: (a: Action) => void }) {
-  const set = (patch: Partial<RxItem>) => dispatch({ type: 'updateRx', id: r.id, patch })
+export function RxCard({ r, onChange, onRemove }: { r: RxItem; onChange: (patch: Partial<RxItem>) => void; onRemove: () => void }) {
+  const set = onChange
   const u = parseUsage(r.usage)
   const per = perDose(r)
   // 1回量を変えたら1日量を、回数を変えたら1回量を保ったまま1日量を直す
@@ -178,7 +178,7 @@ function RxCard({ r, dispatch }: { r: RxItem; dispatch: (a: Action) => void }) {
           <input type="checkbox" checked={!!r.noGeneric} onChange={(e) => set({ noGeneric: e.target.checked })} className="h-4 w-4 accent-[var(--color-rx)]" />
           変更不可
         </label>
-        <button onClick={() => dispatch({ type: 'removeRx', id: r.id })} className="icon-btn icon-btn-sm" aria-label="削除">
+        <button onClick={onRemove} className="icon-btn icon-btn-sm" aria-label="削除">
           <Icon name="delete" size={18} />
         </button>
       </div>
