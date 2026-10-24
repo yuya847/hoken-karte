@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { DRUGS, SETS, TESTS } from './data'
 import { vitalsLine } from './LeftPane'
 import { Icon } from './Icon'
-import { daysText, doseText, groupRp, rxLine, usageText } from './rxFormat'
+import { daysText, doseText, groupRp, rxLine, usageLine } from './rxFormat'
 import { RxCard } from './RxWindow'
 import { DxStrip } from './DiseasePanel'
 import { OrderSearch, type SearchItem } from './OrderSearch'
@@ -13,7 +13,7 @@ import { parseVitals } from './vitals'
 // 処方・検査・セットをひとつの検索欄で引く。病名はオーダーから自動で付くのでここには出さない
 const ORDER_ITEMS: SearchItem[] = [
   ...SETS.map((x) => ({ id: `set:${x.id}`, label: x.name, keys: `${x.kana} ${x.alias}`, icon: 'playlist_add', iconClass: 'text-primary', tag: 'セット' })),
-  ...DRUGS.map((d) => ({ id: `rx:${d.id}`, label: d.name, sub: `${doseText(d)} ${usageText(d.usage)} ${daysText(d)}`, keys: `${d.kana} ${d.alias}`, icon: 'medication', iconClass: 'text-rx', tag: '処方' })),
+  ...DRUGS.map((d) => ({ id: `rx:${d.id}`, label: d.name, sub: `${doseText(d)} ${usageLine(d)} ${daysText(d) || (d.site ?? '')}`, keys: `${d.kana} ${d.alias}`, icon: 'medication', iconClass: 'text-rx', tag: '処方' })),
   ...TESTS.map((t) => ({ id: `test:${t.code}`, label: t.name, keys: `${t.kana} ${t.alias}`, icon: 'biotech', iconClass: 'text-lab', tag: '検査' })),
 ]
 
@@ -123,8 +123,8 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
                   </div>
                 ))}
                 <div className="flex gap-4 pr-10 pb-0.5 text-[13px] text-ink-2">
-                  <span className="flex-1 text-right">{usageText(g[0].usage)}</span>
-                  <span className="w-14 text-right tabular-nums">{daysText(g[0])}</span>
+                  <span className="flex-1 text-right">{usageLine(g[0])}</span>
+                  <span className="w-14 text-right tabular-nums">{daysText(g[0]) || g[0].site}</span>
                 </div>
               </div>
             </div>

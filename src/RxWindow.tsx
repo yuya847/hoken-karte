@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { DAY_PRESETS, DRUG_CLASS, DRUG_CLASSES, DRUGS } from './data'
 import { Icon } from './Icon'
-import { daysText, doseText, groupRp, parseUsage, perDose, PRN_TIMINGS, TIMES, TIMINGS, usageOf, usageText } from './rxFormat'
+import { daysText, doseText, EXT_TIMINGS, isExternal, parseUsage, perDose, PRN_TIMINGS, SITES, TIMES, TIMINGS, usageLine, usageOf } from './rxFormat'
+import { RxTable } from './RxTable'
 import type { Action } from './store'
 import type { Draft, Patient, RxItem } from './types'
 
@@ -14,7 +15,11 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const ref = useRef<HTMLInputElement>(null)
-  useEffect(() => ref.current?.focus(), [])
+  const tableRef = useRef<HTMLInputElement>(null)
+  // 開いたら表の入力行に（そのまま薬品名を打てる）
+  useEffect(() => tableRef.current?.focus(), [])
+  const [selected, setSelected] = useState<string | null>(null)
+  const sel = draft.rx.find((r) => r.id === selected) ?? null
 
   const history = useMemo(() => new Set(patient.encounters.flatMap((e) => e.rx.map((r) => r.drugId))), [patient])
   const inDraft = new Map(draft.rx.map((r) => [r.drugId, r]))
@@ -110,7 +115,7 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
                     <span className="min-w-0 flex-1">
                       <span className={`block truncate text-sm ${on ? 'font-medium text-rx' : ''}`}>{d.name}</span>
                       <span className="block text-xs text-ink-2">
-                        {DRUG_CLASS[d.id]}・{doseText(d)} {usageText(d.usage)} {daysText(d)}
+                        {DRUG_CLASS[d.id]}・{doseText(d)} {usageLine(d)} {daysText(d) || d.site}
                       </span>
                     </span>
                     {history.has(d.id) && <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] text-ink-2">処方歴あり</span>}
@@ -121,29 +126,20 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
             </div>
           </div>
 
-          {/* 今回の処方 */}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-3xl bg-white">
+          {/* 今回の処方（表に直接打てる） */}
+          <div className="flex min-h-0 min-w-0 flex-col rounded-3xl bg-white lg:flex-[1.35] max-lg:flex-1">
             <div className="flex items-center gap-2 px-5 pt-4 pb-2">
               <span className="flex-1 text-base font-medium">今回の処方</span>
               <span className="label">{draft.rx.length}剤</span>
             </div>
-            <div className="flex-1 space-y-3 overflow-y-auto px-3 pb-3">
-              {draft.rx.length === 0 && <div className="rounded-xl border border-dashed border-outline-var px-4 py-6 text-center text-sm text-ink-2">左から薬を選ぶと、ここに入ります</div>}
-              {groupRp(draft.rx).map((g, gi) => (
-                <div key={g[0].id}>
-                  <div className="mb-1 flex items-center gap-2 px-1 text-xs text-ink-2">
-                    <span className="font-medium text-rx">Rp{gi + 1}</span>
-                    <span>
-                      {usageText(g[0].usage)}・{daysText(g[0])}
-                    </span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {g.map((r) => (
-                      <RxCard key={r.id} r={r} onChange={(patch) => dispatch({ type: 'updateRx', id: r.id, patch })} onRemove={() => dispatch({ type: 'removeRx', id: r.id })} />
-                    ))}
-                  </div>
+            <div className="flex-1 overflow-y-auto px-3 pb-3">
+              <RxTable draft={draft} history={history} dispatch={dispatch} inputRef={tableRef} selected={sel?.id ?? null} onSelect={setSelected} />
+              {sel && (
+                <div className="mt-3">
+                  <RxCard r={sel} onChange={(patch) => dispatch({ type: 'updateRx', id: sel.id, patch })} onRemove={() => dispatch({ type: 'removeRx', id: sel.id })} />
                 </div>
-              ))}
+              )}
+              {draft.rx.length === 0 && <p className="mt-3 px-2 text-xs text-ink-2">表の最後の行に薬品名を打つか、左の一覧から選びます。</p>}
             </div>
           </div>
         </div>
@@ -158,13 +154,16 @@ export function RxCard({ r, onChange, onRemove }: { r: RxItem; onChange: (patch:
   const u = parseUsage(r.usage)
   const per = perDose(r)
   // 1回量を変えたら1日量を、回数を変えたら1回量を保ったまま1日量を直す
-  const setPer = (n: number) => set({ dose: u.times ? n * u.times : n })
+  // 外用は1回量を perUse に持ち、総量（dose）は手で決める
+  const ext = isExternal(r)
+  const setPer = (n: number) => set(ext ? { perUse: n } : { dose: u.times ? n * u.times : n })
   const setTimes = (times: number | null) => {
     if (times === u.times) return
+    if (ext) return set({ usage: usageOf({ times, timing: u.timing }) })
     const timing = times ? (TIMINGS[times].includes(u.timing) ? u.timing : TIMINGS[times][0]) : PRN_TIMINGS[0]
     set({ usage: usageOf({ times, timing }), dose: times ? per * times : per })
   }
-  const timings = u.times ? TIMINGS[u.times] : PRN_TIMINGS
+  const timings = ext ? EXT_TIMINGS : u.times ? TIMINGS[u.times] : PRN_TIMINGS
   const step = (n: number, up: boolean) => (up ? n + (n < 1 ? 0.5 : 1) : Math.max(0.5, n - (n > 1 ? 1 : 0.5)))
   const row = 'flex flex-wrap items-center gap-1.5 pl-7'
   const head = 'w-12 shrink-0 text-xs text-ink-2'
@@ -197,7 +196,7 @@ export function RxCard({ r, onChange, onRemove }: { r: RxItem; onChange: (patch:
             <Icon name="add" size={18} />
           </button>
         </span>
-        {u.times && (
+        {u.times && !ext && (
           <span className="text-xs text-ink-2 tabular-nums">
             （1日{r.dose}
             {r.unit}）
@@ -212,13 +211,15 @@ export function RxCard({ r, onChange, onRemove }: { r: RxItem; onChange: (patch:
             {n}回
           </button>
         ))}
-        <button onClick={() => setTimes(null)} className={`chip h-7 px-2.5 text-xs ${u.times === null ? 'chip-on' : ''}`}>
-          頓用
-        </button>
+        {!ext && (
+          <button onClick={() => setTimes(null)} className={`chip h-7 px-2.5 text-xs ${u.times === null ? 'chip-on' : ''}`}>
+            頓用
+          </button>
+        )}
       </div>
 
       <div className={`mt-1.5 ${row}`}>
-        <span className={head}>{u.times ? 'いつ' : 'どんな時'}</span>
+        <span className={head}>{ext ? '使い方' : u.times ? 'いつ' : 'どんな時'}</span>
         {timings.map((t) => (
           <button key={t} onClick={() => set({ usage: usageOf({ times: u.times, timing: t }) })} className={`chip h-7 px-2.5 text-xs ${u.timing === t ? 'chip-on' : ''}`}>
             {t}
@@ -226,22 +227,52 @@ export function RxCard({ r, onChange, onRemove }: { r: RxItem; onChange: (patch:
         ))}
       </div>
 
+      {ext ? (
+        <>
+          <div className={`mt-1.5 ${row}`}>
+            <span className={head}>総量</span>
+            {(r.unit === '枚' ? [7, 14, 28, 42] : [25, 50, 100]).map((n) => (
+              <button key={n} onClick={() => set({ dose: n })} className={`chip h-7 px-2.5 text-xs ${r.dose === n ? 'chip-on' : ''}`}>
+                {n}
+                {r.unit}
+              </button>
+            ))}
+            <input
+              value={r.dose}
+              onChange={(e) => set({ dose: Number(e.target.value) || 0 })}
+              inputMode="decimal"
+              className="field field-sm w-14 text-right tabular-nums"
+              aria-label="総量（自由入力）"
+            />
+          </div>
+          <div className={`mt-1.5 ${row}`}>
+            <span className={head}>部位</span>
+            {SITES.map((x) => (
+              <button key={x} onClick={() => set({ site: x })} className={`chip h-7 px-2.5 text-xs ${r.site === x ? 'chip-on' : ''}`}>
+                {x}
+              </button>
+            ))}
+            <input value={r.site ?? ''} onChange={(e) => set({ site: e.target.value })} className="field field-sm w-28" aria-label="部位（自由入力）" placeholder="部位" />
+          </div>
+        </>
+      ) : (
       <div className={`mt-1.5 ${row}`}>
-        <span className={head}>{u.times ? '日数' : '回数'}</span>
-        {(u.times ? DAY_PRESETS : [3, 5, 10]).map((n) => (
-          <button key={n} onClick={() => set({ days: n })} className={`chip h-7 px-2.5 text-xs ${r.days === n ? 'chip-on' : ''}`}>
-            {n}
-            {u.times ? '日' : '回'}
-          </button>
-        ))}
-        <input
-          value={r.days}
-          onChange={(e) => set({ days: Number(e.target.value) || 0 })}
-          inputMode="numeric"
-          className="field field-sm w-14 text-right tabular-nums"
-          aria-label={u.times ? '日数（自由入力）' : '回数（自由入力）'}
-        />
-      </div>
+          <span className={head}>{u.times ? '日数' : '回数'}</span>
+          {(u.times ? DAY_PRESETS : [3, 5, 10]).map((n) => (
+            <button key={n} onClick={() => set({ days: n })} className={`chip h-7 px-2.5 text-xs ${r.days === n ? 'chip-on' : ''}`}>
+              {n}
+              {u.times ? '日' : '回'}
+            </button>
+          ))}
+          <input
+            value={r.days}
+            onChange={(e) => set({ days: Number(e.target.value) || 0 })}
+            inputMode="numeric"
+            className="field field-sm w-14 text-right tabular-nums"
+            aria-label={u.times ? '日数（自由入力）' : '回数（自由入力）'}
+          />
+        </div>
+      )}
     </div>
   )
 }

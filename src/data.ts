@@ -10,6 +10,9 @@ export type Drug = {
   dose: number
   usage: string
   days: number
+  form?: 'external'
+  perUse?: number
+  site?: string
 }
 
 export const DRUGS: Drug[] = [
@@ -28,6 +31,11 @@ export const DRUGS: Drug[] = [
   { id: 'd13', name: 'フェキソフェナジン錠60mg', kana: 'ふぇきそふぇなじん', alias: 'feki', unit: '錠', dose: 2, usage: '1日2回朝夕食後', days: 14 },
   { id: 'd14', name: '酸化マグネシウム錠330mg', kana: 'さんかまぐねしうむ', alias: 'mag', unit: '錠', dose: 3, usage: '1日3回毎食後', days: 28 },
   { id: 'd15', name: 'フェブキソスタット錠20mg', kana: 'ふぇぶきそすたっと', alias: 'febu', unit: '錠', dose: 1, usage: '1日1回朝食後', days: 28 },
+  // 外用薬：dose は総量
+  { id: 'd16', name: 'フランドルテープ40mg', kana: 'ふらんどるてーぷ しょうさんいそそるびど', alias: 'frandol', unit: '枚', dose: 7, usage: '1日1回貼付', days: 0, form: 'external', perUse: 1, site: '前胸部' },
+  { id: 'd17', name: 'ロキソプロフェンNaテープ100mg', kana: 'ろきそぷろふぇんてーぷ ろきそにんてーぷ', alias: 'loxotape', unit: '枚', dose: 28, usage: '1日1回貼付', days: 0, form: 'external', perUse: 1, site: '腰部' },
+  { id: 'd18', name: 'ケトプロフェンテープ20mg', kana: 'けとぷろふぇんてーぷ もーらすてーぷ', alias: 'mohrus', unit: '枚', dose: 28, usage: '1日1回貼付', days: 0, form: 'external', perUse: 1, site: '腰部' },
+  { id: 'd19', name: 'ヘパリン類似物質油性クリーム0.3%', kana: 'へぱりんるいじぶっしつ ひるどいど', alias: 'hirudo', unit: 'g', dose: 50, usage: '1日2回塗布', days: 0, form: 'external', perUse: 1, site: '両下腿' },
 ]
 
 export const TEST_GROUPS = ['血液学', '生化学', '免疫・血清', '尿・便', '生理', '画像'] as const
@@ -77,6 +85,8 @@ export const EXTERNAL_IMAGING = new Set(['t31', 't32', 't33', 't34', 't35'])
 
 export const DISEASES: { name: string; kana: string; alias: string }[] = [
   { name: '高血圧症', kana: 'こうけつあつしょう', alias: 'ht' },
+  { name: '狭心症', kana: 'きょうしんしょう', alias: 'ap' },
+  { name: '皮脂欠乏症', kana: 'ひしけつぼうしょう', alias: 'xerosis' },
   { name: '2型糖尿病', kana: 'にがたとうにょうびょう', alias: 'dm' },
   { name: '脂質異常症', kana: 'ししついじょうしょう', alias: 'dl' },
   { name: '逆流性食道炎', kana: 'ぎゃくりゅうせいしょくどうえん', alias: 'gerd' },
@@ -109,7 +119,7 @@ export const DISEASES: { name: string; kana: string; alias: string }[] = [
 ]
 
 // 処方ウインドウで並べる薬効分類（試作用の簡易分類）
-export const DRUG_CLASSES = ['降圧薬', '糖尿病薬', '脂質異常症薬', '消化器', '呼吸器・感冒', '解熱鎮痛', 'アレルギー', '便秘', '痛風・高尿酸'] as const
+export const DRUG_CLASSES = ['降圧薬', '糖尿病薬', '脂質異常症薬', '消化器', '呼吸器・感冒', '解熱鎮痛', 'アレルギー', '便秘', '痛風・高尿酸', '外用'] as const
 export const DRUG_CLASS: Record<string, (typeof DRUG_CLASSES)[number]> = {
   d01: '降圧薬',
   d02: '降圧薬',
@@ -126,6 +136,10 @@ export const DRUG_CLASS: Record<string, (typeof DRUG_CLASSES)[number]> = {
   d13: 'アレルギー',
   d14: '便秘',
   d15: '痛風・高尿酸',
+  d16: '外用',
+  d17: '外用',
+  d18: '外用',
+  d19: '外用',
 }
 
 export const DAY_PRESETS = [3, 5, 7, 14, 28, 56]
@@ -148,6 +162,10 @@ export const DRUG_INDICATIONS: Record<string, string[]> = {
   d13: ['アレルギー性鼻炎'],
   d14: ['便秘症'],
   d15: ['高尿酸血症'],
+  d16: ['狭心症'],
+  d17: ['腰痛症'],
+  d18: ['腰痛症'],
+  d19: ['皮脂欠乏症'],
 }
 
 export const TEST_INDICATIONS: Record<string, string[]> = {
@@ -212,7 +230,8 @@ const daysAgo = (n: number) => {
 
 export const rxFromDrug = (drugId: string, days?: number): RxItem => {
   const d = DRUGS.find((x) => x.id === drugId)!
-  return { id: uid('rx'), drugId: d.id, name: d.name, dose: d.dose, unit: d.unit, usage: d.usage, days: days ?? d.days }
+  const ext = d.form === 'external' ? { form: d.form, perUse: d.perUse, site: d.site } : {}
+  return { id: uid('rx'), drugId: d.id, name: d.name, dose: d.dose, unit: d.unit, usage: d.usage, days: days ?? d.days, ...ext }
 }
 
 export const testFromCode = (code: string): TestOrder => {

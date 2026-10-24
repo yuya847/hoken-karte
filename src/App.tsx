@@ -5,7 +5,7 @@ import { LeftPane, type DoDrag } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { Icon } from './Icon'
 import { BrandWordmark } from './BrandMark'
-import { daysText, doseText, usageText } from './rxFormat'
+import { daysText, doseText, usageLine } from './rxFormat'
 import { PacsPanel } from './PacsPanel'
 import { TestWindow } from './TestWindow'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
@@ -235,7 +235,7 @@ export default function App() {
         id: d.id,
         group: '処方' as const,
         label: d.name,
-        sub: `${doseText(d)} ${usageText(d.usage)} ${daysText(d)}`,
+        sub: `${doseText(d)} ${usageLine(d)} ${daysText(d) || (d.site ?? '')}`,
         keys: `${d.kana} ${d.alias}`,
         run: run({ type: 'addRx', drugId: d.id }),
       })),

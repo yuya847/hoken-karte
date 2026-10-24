@@ -17,6 +17,10 @@ export type RxItem = {
   days: number
   diseases?: string[] // 確定時に紐付いた病名（表示名）
   noGeneric?: boolean // 後発品への変更不可
+  // 外用薬（湿布・塗り薬）は日数ではなく総量で出し、1回量と部位を書く（dose＝総量、days は使わない）
+  form?: 'external'
+  perUse?: number
+  site?: string
 }
 
 export type TestOrder = { id: string; code: string; name: string; diseases?: string[] }
