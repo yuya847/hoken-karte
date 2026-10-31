@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Icon } from './Icon'
+import { useRef, useState } from 'react'
 import { rxLine } from './rxFormat'
 import type { DoPart } from './store'
 import type { Encounter, Patient, Vitals } from './types'
@@ -41,125 +40,159 @@ type Props = {
   onDrag: (d: DoDrag | null) => void
 }
 
+const WD = ['日', '月', '火', '水', '木', '金', '土']
+const dayLabel = (d: string) => {
+  const t = new Date(`${d}T00:00:00`)
+  return `${d.replace(/-/g, '/')}（${WD[t.getDay()]}）`
+}
+
+// 左：経過（ファストカルテの ChartDateRail＋タイムラインと同じ形）。
+// 一番左に月ごとの日付の列、押すとその日へ飛ぶ。日ごとに見出し、その下に「記録」のカード（左に色の太線）と「オーダー」の枠
 export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }: Props) {
   const [filter, setFilter] = useState<Filter>('全て')
   const list = [...patient.encounters].sort((a, b) => b.date.localeCompare(a.date))
+  const scroller = useRef<HTMLDivElement>(null)
+  const months = list.reduce<{ ym: string; days: string[] }[]>((acc, e) => {
+    const ym = e.date.slice(0, 7)
+    const m = acc.find((x) => x.ym === ym) ?? (acc.push({ ym, days: [] }), acc[acc.length - 1])
+    if (!m.days.includes(e.date)) m.days.push(e.date)
+    return acc
+  }, [])
+  const [openMonths, setOpenMonths] = useState<Set<string>>(() => new Set(list.length > 12 ? months.slice(0, 1).map((m) => m.ym) : months.map((m) => m.ym)))
+  const jump = (d: string) => scroller.current?.querySelector(`#day-${d}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="space-y-3 px-5 pt-4 pb-3">
-        <div className="flex gap-1.5 overflow-x-auto">
+    <div className="flex h-full gap-3">
+      {list.length > 0 && (
+        <nav aria-label="日付" className="w-[72px] shrink-0 overflow-y-auto max-lg:hidden">
+          {months.map((m) => {
+            const open = openMonths.has(m.ym)
+            return (
+              <div key={m.ym} className="mb-1.5">
+                <button
+                  onClick={() => setOpenMonths((cur) => (cur.has(m.ym) ? new Set([...cur].filter((x) => x !== m.ym)) : new Set(cur).add(m.ym)))}
+                  className="flex items-center gap-0.5 text-[11px] whitespace-nowrap text-mist hover:text-ink"
+                >
+                  <span className={`inline-block transition-transform ${open ? 'rotate-90' : ''}`}>›</span>
+                  <span className="font-num">{m.ym.replace('-', '/')}</span>
+                  <span className="text-[10px]">{m.days.length}</span>
+                </button>
+                {open && (
+                  <div className="mt-1 ml-1.5 flex flex-col gap-1 border-l border-line pl-1">
+                    {m.days.map((d) => (
+                      <button key={d} onClick={() => jump(d)} className="rounded-md border border-line bg-ivory px-1.5 py-1 text-center text-xs leading-tight text-clinical hover:bg-gold-soft">
+                        <span className="font-num block">{d.slice(8)}</span>
+                        <span className="block text-[11px] text-mist">{WD[new Date(`${d}T00:00:00`).getDay()]}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </nav>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 gap-1 overflow-x-auto pb-2">
           {FILTERS.map((f) => (
             <button key={f} onClick={() => setFilter(f)} className={`chip ${filter === f ? 'chip-on' : ''}`}>
-              {filter === f && <Icon name="check" size={16} />}
               {f}
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-3">
-        {list.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-12 text-ink-2">
-            <Icon name="person_add" size={40} className="text-outline" />
-            過去の記録はありません（初診）
-          </div>
-        )}
-        {list.map((e) => {
-          const showText = filter === '全て' || filter === '記載'
-          const showRx = (filter === '全て' || filter === '処方') && e.rx.length > 0
-          const showTests = (filter === '全て' || filter === '検査') && e.tests.length > 0
-          const showDocs = (filter === '全て' || filter === '文書') && e.letters.length > 0
-          if (!showText && !showRx && !showTests && !showDocs) return null
-          const drag = (parts: DoPart[]) => ({
-            draggable: true,
-            onDragStart: (ev: React.DragEvent) => {
-              ev.stopPropagation()
-              ev.dataTransfer.effectAllowed = 'copy'
-              ev.dataTransfer.setData('text/plain', encounterSummary(e))
-              onDrag({ encounterId: e.id, parts })
-            },
-            onDragEnd: () => onDrag(null),
-          })
-          return (
-            <div
-              key={e.id}
-              {...drag(['text', 'rx', 'tests'])}
-              title="右へドラッグするとこの日の記載・処方・検査をDo"
-              className={`group rounded-2xl p-4 transition-colors ${selectedId === e.id ? 'bg-primary-ctr/60 ring-2 ring-primary' : 'bg-surface-1 hover:bg-surface-2'}`}
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <span className="font-medium">{e.date}</span>
-                <span className="text-xs text-ink-2">{e.kind}</span>
-                {e.version > 1 && <span className="rounded-md bg-doc-ctr px-1.5 text-[11px] font-medium text-doc">訂正 v{e.version}</span>}
-                <span className="flex-1" />
-                <div className="flex gap-0.5 opacity-70 transition-opacity group-hover:opacity-100 touch:opacity-100">
-                  {e.rx.length > 0 && (
-                    <button onClick={() => onDo(e.id)} className="btn btn-sm btn-text px-2.5" title="この処方をDo">
-                      <Icon name="replay" size={18} />
-                      Do
-                    </button>
-                  )}
-                  <button onClick={() => onQuote(encounterSummary(e))} className="icon-btn icon-btn-sm" title="引用">
-                    <Icon name="format_quote" size={18} />
-                  </button>
-                  <button onClick={() => onEdit(e.id)} className="icon-btn icon-btn-sm" title="編集（訂正）">
-                    <Icon name="edit" size={18} />
-                  </button>
-                </div>
-              </div>
-              {showText && (
-                <div {...drag(['text'])} title="右へドラッグで記載をコピー" className="cursor-grab active:cursor-grabbing">
-                  {vitalsLine(e.vitals) && <div className="mb-1 text-xs tabular-nums text-ink-2">{vitalsLine(e.vitals)}</div>}
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap">{e.text || <span className="text-ink-2">（記載なし）</span>}</div>
-                </div>
-              )}
-              {showRx && (
-                <div
-                  {...drag(['rx'])}
-                  onDoubleClick={() => onEdit(e.id, 'orders')}
-                  title="ダブルクリックで訂正・右へドラッグで処方をDo"
-                  className="mt-2.5 cursor-grab rounded-xl bg-white px-3 py-2 text-sm hover:ring-2 hover:ring-rx/30 active:cursor-grabbing"
-                >
-                  <div className="mb-0.5 flex items-center gap-1 text-xs font-medium text-rx">
-                    <Icon name="medication" size={16} />
-                    処方
-                  </div>
-                  {e.rx.map((r) => (
-                    <div key={r.id}>
-                      {rxLine(r)}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {showTests && (
-                <div
-                  {...drag(['tests'])}
-                  onDoubleClick={() => onEdit(e.id, 'orders')}
-                  title="ダブルクリックで訂正・右へドラッグで検査をDo"
-                  className="mt-2 flex cursor-grab items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm hover:ring-2 hover:ring-lab/30 active:cursor-grabbing"
-                >
-                  <Icon name="biotech" size={16} className="text-lab" />
-                  <span>
-                    {e.tests.map((t, i) => (
-                      <span key={t.id}>
-                        {i > 0 && '、'}
-                        {t.name}
+        <div ref={scroller} className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1 pb-3">
+          {list.length === 0 && <div className="rounded-lg border border-dashed border-line bg-ivory px-6 py-12 text-center text-mist">過去の記録はありません（初診）</div>}
+          {list.map((e) => {
+            const showText = filter === '全て' || filter === '記載'
+            const showRx = (filter === '全て' || filter === '処方') && e.rx.length > 0
+            const showTests = (filter === '全て' || filter === '検査') && e.tests.length > 0
+            const showDocs = (filter === '全て' || filter === '文書') && e.letters.length > 0
+            if (!showText && !showRx && !showTests && !showDocs) return null
+            const drag = (parts: DoPart[]) => ({
+              draggable: true,
+              onDragStart: (ev: React.DragEvent) => {
+                ev.stopPropagation()
+                ev.dataTransfer.effectAllowed = 'copy'
+                ev.dataTransfer.setData('text/plain', encounterSummary(e))
+                onDrag({ encounterId: e.id, parts })
+              },
+              onDragEnd: () => onDrag(null),
+            })
+            const sel = selectedId === e.id
+            return (
+              <section key={e.id} id={`day-${e.date}`} {...drag(['text', 'rx', 'tests'])} title="右へドラッグするとこの日の記載・処方・検査をDo" className="group scroll-mt-1">
+                <h3 className="mb-2 flex items-baseline gap-2 border-b border-line pb-1 text-sm font-semibold">
+                  <span className="font-num">{dayLabel(e.date)}</span>
+                  <span className="text-xs font-normal text-mist">{e.kind}</span>
+                  {e.version > 1 && <span className="rounded bg-doc-ctr px-1.5 text-[11px] font-medium text-doc">訂正 v{e.version}</span>}
+                </h3>
+                {showText && (
+                  <div
+                    {...drag(['text'])}
+                    onDoubleClick={() => onEdit(e.id)}
+                    title="ダブルクリックで訂正・右へドラッグで記載をコピー"
+                    className={`mb-2 cursor-grab rounded-md border border-l-4 border-line border-l-sky-400 p-3 active:cursor-grabbing ${sel ? 'bg-gold-soft ring-2 ring-gold-dark' : 'bg-sky-50/60'}`}
+                  >
+                    <div className="mb-1 flex items-center gap-1.5 text-xs text-mist">
+                      <span>記録</span>
+                      <span>担当: 青木</span>
+                      <span className="rounded bg-sky-100 px-1 text-[11px] text-sky-800">Dr</span>
+                      <span className="flex-1" />
+                      <span className="flex gap-2 opacity-70 transition-opacity group-hover:opacity-100 touch:opacity-100">
+                        {e.rx.length > 0 && (
+                          <button onClick={() => onDo(e.id)} className="text-clinical hover:underline" title="この処方をDo（⌘D）">
+                            Do
+                          </button>
+                        )}
+                        <button onClick={() => onQuote(encounterSummary(e))} className="text-clinical hover:underline">
+                          引用
+                        </button>
+                        <button onClick={() => onEdit(e.id)} className="text-clinical hover:underline">
+                          開く
+                        </button>
                       </span>
-                    ))}
-                  </span>
-                </div>
-              )}
-              {showDocs &&
-                e.letters.map((l) => (
-                  <div key={l.id} className="mt-2 flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm">
-                    <Icon name="description" size={16} className="text-doc" />
-                    {l.title}（{l.to || '宛先未記入'}）
+                    </div>
+                    {vitalsLine(e.vitals) && <div className="mb-1 font-num text-xs text-mist">{vitalsLine(e.vitals)}</div>}
+                    <div className="text-[13px] leading-relaxed whitespace-pre-wrap">{e.text || <span className="text-mist">（記載なし）</span>}</div>
                   </div>
-                ))}
-            </div>
-          )
-        })}
+                )}
+                {(showRx || showTests || showDocs) && (
+                  <div className="rounded-md border border-line bg-ivory p-3">
+                    <div className="mb-1 text-xs text-mist">オーダー</div>
+                    {showRx && (
+                      <div {...drag(['rx'])} onDoubleClick={() => onEdit(e.id, 'orders')} title="ダブルクリックで訂正・右へドラッグで処方をDo" className="cursor-grab rounded hover:bg-cream active:cursor-grabbing">
+                        {e.rx.map((r) => (
+                          <div key={r.id} className="flex items-baseline gap-2 border-b border-line py-1.5 text-sm last:border-b-0">
+                            <span className="w-8 shrink-0 rounded bg-rx-ctr text-center text-[11px] text-rx">処方</span>
+                            <span className="min-w-0 flex-1">{rxLine(r)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {showTests && (
+                      <div {...drag(['tests'])} onDoubleClick={() => onEdit(e.id, 'orders')} title="ダブルクリックで訂正・右へドラッグで検査をDo" className="cursor-grab rounded hover:bg-cream active:cursor-grabbing">
+                        <div className="flex items-baseline gap-2 border-b border-line py-1.5 text-sm last:border-b-0">
+                          <span className="w-8 shrink-0 rounded bg-lab-ctr text-center text-[11px] text-lab">検査</span>
+                          <span className="min-w-0 flex-1">{e.tests.map((t) => t.name).join('、')}</span>
+                        </div>
+                      </div>
+                    )}
+                    {showDocs &&
+                      e.letters.map((l) => (
+                        <div key={l.id} className="flex items-baseline gap-2 py-1.5 text-sm">
+                          <span className="w-8 shrink-0 rounded bg-doc-ctr text-center text-[11px] text-doc">文書</span>
+                          <span className="min-w-0 flex-1">
+                            {l.title}（{l.to || '宛先未記入'}）
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </section>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

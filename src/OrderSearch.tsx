@@ -35,7 +35,7 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, icon = 'sear
 
   return (
     <div className="relative">
-      <Icon name={icon} size={20} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-2" />
+      <Icon name={icon} size={17} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-mist" />
       <input
         ref={inputRef}
         value={q}
@@ -62,11 +62,10 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, icon = 'sear
           }
         }}
         placeholder={placeholder}
-        className={`h-11 w-full rounded-full bg-surface-1 pr-4 pl-10 text-sm outline-none transition-colors placeholder:text-ink-2/70 hover:bg-surface-2 focus:bg-white focus:shadow-md ${showList ? 'rounded-b-none rounded-t-3xl' : ''}`}
+        className="h-8 w-full rounded border border-line bg-white pr-3 pl-8 text-sm outline-none transition-colors placeholder:text-mist/70 focus:border-clinical touch:h-10"
       />
       {showList && (
-        <div className="absolute z-20 w-full overflow-hidden rounded-b-3xl bg-white pb-2 shadow-md">
-          <div className="mx-4 mb-1 border-t border-surface-2" />
+        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-line bg-ivory py-1 shadow-soft">
           {results.map((c, i) => (
             <div
               key={c.id}
@@ -75,10 +74,10 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, icon = 'sear
                 e.preventDefault()
                 pick(c)
               }}
-              className={`flex cursor-pointer items-center gap-3 px-4 py-2 text-sm ${i === idx ? 'bg-surface-1' : ''}`}
+              className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${i === idx ? 'bg-gold-soft' : ''}`}
             >
               <Icon name={c.icon ?? 'add'} size={18} className={c.iconClass ?? 'text-ink-2'} />
-              {c.tag && <span className="w-8 shrink-0 text-xs text-ink-2">{c.tag}</span>}
+              {c.tag && <span className="w-9 shrink-0 rounded bg-cream text-center text-[11px] text-mist">{c.tag}</span>}
               <span className="flex-1 truncate">{c.label}</span>
               {c.sub && <span className="truncate text-xs text-ink-2">{c.sub}</span>}
             </div>

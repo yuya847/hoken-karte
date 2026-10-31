@@ -203,7 +203,7 @@ export function RxTable({
             />
             {q.trim().length > 0 && q.trim().length < MIN_CHARS && <div className="absolute top-full left-0 z-20 mt-1 text-xs text-ink-2">あと{MIN_CHARS - q.trim().length}文字</div>}
             {candidates.length > 0 && (
-              <ul id="rx-candidates" role="listbox" className="absolute top-full right-2 left-0 z-20 mt-1 max-h-80 overflow-y-auto rounded-xl bg-white py-1 shadow-xl ring-1 ring-outline-var">
+              <ul id="rx-candidates" role="listbox" className="absolute top-full right-2 left-0 z-20 mt-1 max-h-80 overflow-y-auto rounded-md bg-white py-1 shadow-xl ring-1 ring-outline-var">
                 {candidates.map((d, i) => (
                   <li
                     key={d.id}

@@ -23,18 +23,18 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
 
   const toggle = (code: string) => dispatch({ type: 'toggleTest', code })
   return (
-    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-3 max-md:p-0" onPointerDown={onClose}>
+    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-3 max-md:p-0" onPointerDown={onClose}>
       <div
         role="dialog"
         aria-label="検査オーダー"
-        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-[28px] bg-surface-1 shadow-2xl max-md:h-full max-md:rounded-none max-md:pt-[env(safe-area-inset-top)]"
+        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-2xl border border-line bg-cream shadow-2xl max-md:h-full max-md:rounded-none max-md:pt-[env(safe-area-inset-top)]"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-6 pt-5 pb-3 max-md:px-4 max-md:pt-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-lab-ctr text-lab">
             <Icon name="biotech" size={20} />
           </span>
-          <h2 className="text-[22px]">検査オーダー</h2>
+          <h2 className="text-base font-semibold">検査オーダー</h2>
           <span className="flex-1" />
           <button onClick={onClose} className="btn btn-filled">
             <Icon name="check" size={20} />
@@ -58,7 +58,7 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
                 }
               }}
               placeholder="絞り込み（例：a1c、かん）Enterで先頭を選択"
-              className="h-11 w-full rounded-full bg-white pr-4 pl-10 text-sm outline-none placeholder:text-ink-2/70 hover:bg-surface-2 focus:bg-white focus:shadow-md"
+              className="h-9 w-full rounded-md border border-line bg-white pr-3 pl-10 text-sm outline-none placeholder:text-mist/70 focus:border-clinical"
             />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -83,7 +83,7 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
           </div>
         </div>
 
-        <div className="mx-3 grid flex-1 auto-rows-min grid-cols-2 gap-x-5 gap-y-4 overflow-y-auto rounded-3xl bg-white px-4 py-4 lg:grid-cols-3">
+        <div className="mx-3 grid flex-1 auto-rows-min grid-cols-2 gap-x-5 gap-y-4 overflow-y-auto rounded-lg bg-white px-4 py-4 lg:grid-cols-3">
           {TEST_GROUPS.map((g) => {
             const items = visible.filter((t) => t.group === g)
             if (items.length === 0) return null
@@ -97,7 +97,7 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
                       <button
                         key={t.code}
                         onClick={() => toggle(t.code)}
-                        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                        className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors ${
                           on ? 'bg-lab-ctr font-medium text-lab' : 'hover:bg-surface-1'
                         }`}
                       >

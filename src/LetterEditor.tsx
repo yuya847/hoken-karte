@@ -26,7 +26,7 @@ export function LetterEditor({ patient, draft, dispatch }: { patient: Patient; d
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-doc-ctr text-doc">
           <Icon name="forward_to_inbox" size={20} />
         </span>
-        <h2 className="flex-1 text-[22px]">診療情報提供書（紹介状）</h2>
+        <h2 className="flex-1 text-base font-semibold">診療情報提供書（紹介状）</h2>
         <button
           onClick={() => {
             dispatch({ type: 'letter', patch: null })
@@ -47,7 +47,7 @@ export function LetterEditor({ patient, draft, dispatch }: { patient: Patient; d
           <span className="label">紹介先（医療機関・診療科・医師名）</span>
           <input ref={toRef} value={letter?.to ?? ''} onChange={(e) => set({ to: e.target.value })} placeholder="例：〇〇病院 循環器内科 〇〇先生" className="field mt-1" />
         </label>
-        <div className="space-y-1 rounded-2xl bg-surface-1 p-4">
+        <div className="space-y-1 rounded-lg bg-surface-1 p-4">
           <div>
             患者：{patient.name}（{patient.kana}） {ageSex(patient)} {birthLabel(patient.birth)}生
           </div>

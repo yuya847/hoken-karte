@@ -35,7 +35,7 @@ export type Action =
   | { type: 'letter'; patch: Partial<NonNullable<Draft['letter']>> | null }
   | { type: 'mode'; mode: RightMode }
   | { type: 'savePast'; encounterId: string; text: string; vitals: Vitals; rx: RxItem[]; tests: TestOrder[] }
-  | { type: 'confirm' }
+  | { type: 'confirm'; then?: 'next' | 'list' } // 確定のあと：next＝次の待ち患者を開く、list＝一覧に戻る
   | { type: 'paid'; patientId: string }
   | { type: 'status'; patientId: string; status: QueueStatus }
   | { type: 'clearMetrics' }
@@ -248,7 +248,7 @@ export function reducer(s: State, a: Action): State {
         currentId: null,
         mode: { kind: 'chart' },
       }
-      const next = done.patients.find((x) => x.status === '待ち')
+      const next = a.then === 'list' ? undefined : done.patients.find((x) => x.status === '待ち')
       return next ? openPatient(done, next.id) : done
     }
     case 'paid':

@@ -3,32 +3,45 @@
 /* iPadなどタッチ操作の端末 */
 @custom-variant touch (@media (pointer: coarse));
 
-/* Material Design 3 に沿った配色。色の意味：primary=主操作、処方=緑、検査=紫、病名=青、文書=橙 */
+/* ファストカルテ（~/biyou-karte）と同じ配色。クリーム地・白い面・墨の文字・金のホバー・藍（clinical）の主操作。
+   旧来の MD3 の名前（primary・surface-1 など）もファストカルテの色に当て直して、既存の画面がそのまま同じ見た目になるようにする。
+   オーダーの色分け：処方=緑、検査=紫、病名=藍、文書=橙 */
 @theme {
-  --color-primary: #0b57d0;
-  --color-primary-hover: #0842a0;
-  --color-primary-ctr: #d3e3fd;
-  --color-on-primary-ctr: #041e49;
-  --color-secondary-ctr: #c2e7ff;
-  --color-on-secondary-ctr: #001d35;
-  --color-page: #f8fafd;
-  --color-surface-1: #f0f4f9;
-  --color-surface-2: #e9eef6;
-  --color-outline: #747775;
-  --color-outline-var: #c4c7c5;
-  --color-ink: #1f1f1f;
-  --color-ink-2: #444746;
-  --color-error: #b3261e;
-  --color-error-ctr: #f9dedc;
-  --color-rx: #146c2e;
-  --color-rx-ctr: #e6f4ea;
-  --color-lab: #7627bb;
-  --color-lab-ctr: #f3e8fd;
-  --color-dx: #0b57d0;
-  --color-dx-ctr: #e8f0fe;
-  --color-doc: #8a4b00;
-  --color-doc-ctr: #feefc3;
-  --font-sans: Roboto, "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif;
+  --color-cream: #faf8f4;
+  --color-ivory: #ffffff;
+  --color-mist: #6e665e;
+  --color-line: #e7e1d8;
+  --color-gold: #b59a6b;
+  --color-gold-dark: #9c8255;
+  --color-gold-soft: #efe7d8;
+  --color-sage: #8a9a8e;
+  --color-clinical: #3f6f8f;
+
+  --color-primary: #3f6f8f;
+  --color-primary-hover: #345d78;
+  --color-primary-ctr: #efe7d8;
+  --color-on-primary-ctr: #2b2724;
+  --color-secondary-ctr: #efe7d8;
+  --color-on-secondary-ctr: #2b2724;
+  --color-page: #faf8f4;
+  --color-surface-1: #f6f2ec;
+  --color-surface-2: #efe9df;
+  --color-outline: #b3a99c;
+  --color-outline-var: #e7e1d8;
+  --color-ink: #2b2724;
+  --color-ink-2: #6e665e;
+  --color-error: #c62828;
+  --color-error-ctr: #fdecec;
+  --color-rx: #2e7d4f;
+  --color-rx-ctr: #e7f3ea;
+  --color-lab: #7a4fa8;
+  --color-lab-ctr: #f3ecfa;
+  --color-dx: #3f6f8f;
+  --color-dx-ctr: #e6eef4;
+  --color-doc: #9c6a1e;
+  --color-doc-ctr: #f8eedb;
+  --shadow-soft: 0 10px 40px -18px rgba(43, 39, 36, 0.18);
+  --font-sans: "Noto Sans JP", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
 }
 
 html, body, #root { height: 100%; }
@@ -41,8 +54,11 @@ body {
   background: var(--color-page);
   color: var(--color-ink);
   font-size: 14px;
-  letter-spacing: 0.01em;
+  line-break: strict;
+  text-wrap: pretty;
+  word-break: auto-phrase;
 }
+h1, h2, h3 { text-wrap: balance; }
 
 @layer components {
   .ms {
@@ -55,42 +71,52 @@ body {
     white-space: nowrap;
     direction: ltr;
     -webkit-font-smoothing: antialiased;
-    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
+    font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 20;
     user-select: none;
   }
+  .ms-bold { font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 20; }
   .ms-fill { font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 20; }
 
-  .btn { @apply inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full px-6 text-sm font-medium transition-[background-color,box-shadow] disabled:cursor-default disabled:opacity-40; }
-  .btn-sm { @apply h-8 gap-1.5 px-4 text-[13px]; }
-  .btn-filled { @apply bg-primary text-white hover:bg-primary-hover hover:shadow-md; }
-  .btn-tonal { @apply bg-secondary-ctr text-on-secondary-ctr hover:shadow-sm hover:brightness-95; }
-  .btn-outlined { @apply border border-outline-var bg-white text-primary hover:bg-primary/5; }
-  .btn-text { @apply px-3 text-primary hover:bg-primary/8; }
-  .btn-danger { @apply px-3 text-error hover:bg-error/8; }
-  .icon-btn { @apply inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-ink/8; }
-  .icon-btn-sm { @apply h-8 w-8; }
+  /* ボタン・チップ・入力欄はファストカルテの書き方（角丸小さめ・細い枠・ホバーで金） */
+  .btn { @apply inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors disabled:cursor-default disabled:opacity-60; }
+  .btn-sm { @apply h-7 gap-1 px-2.5 text-xs; }
+  .btn-filled { @apply bg-clinical text-ivory hover:brightness-110; }
+  .btn-tonal { @apply border border-line bg-gold-soft text-ink hover:border-gold; }
+  .btn-outlined { @apply border border-line bg-ivory text-ink hover:bg-gold-soft; }
+  .btn-text { @apply px-2.5 text-mist hover:bg-gold-soft hover:text-ink; }
+  .btn-danger { @apply px-2.5 text-error hover:bg-error-ctr; }
+  .icon-btn { @apply inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-mist transition-colors hover:bg-gold-soft hover:text-ink; }
+  .icon-btn-sm { @apply h-7 w-7; }
 
-  .chip { @apply inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-var bg-white px-3 text-[13px] font-medium text-ink-2 transition-colors hover:bg-ink/5; }
-  .chip-on { @apply border-transparent bg-secondary-ctr text-on-secondary-ctr hover:bg-secondary-ctr; }
+  .chip { @apply inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-line bg-ivory px-2.5 text-xs text-mist transition-colors hover:bg-gold-soft hover:text-ink; }
+  .chip-on { @apply border-gold bg-gold-soft font-medium text-ink hover:bg-gold-soft; }
 
-  .field { @apply w-full rounded-lg border border-outline bg-white px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-2/60 hover:border-ink focus:border-primary focus:ring-1 focus:ring-primary; }
+  .field { @apply w-full rounded border border-line bg-white px-2 py-1.5 text-sm text-ink outline-none transition-colors placeholder:text-mist/60 focus:border-clinical; }
   .field-sm { @apply px-2 py-1; }
 
-  .card { @apply rounded-3xl bg-white; }
-  .label { @apply text-xs font-medium text-ink-2; }
-  .kbd { @apply rounded border border-current/30 px-1 font-sans text-[11px] opacity-70; }
+  .card { @apply rounded-lg border border-line bg-ivory shadow-soft; }
+  .label { @apply text-xs text-mist; }
+  .kbd { @apply rounded border border-line bg-cream px-1.5 py-px font-mono text-[11px] text-mist; }
+  .btn-filled .kbd { @apply border-ivory/35 bg-transparent text-ivory/85; }
+  .pill { @apply rounded bg-cream px-1.5 py-0.5 text-[11px] text-mist; }
+  .font-num { font-variant-numeric: tabular-nums; }
 }
 
 /* タッチ端末では押す場所を広げ、入力欄は16px以上にしてiOSの自動ズームを防ぐ。キー表示は出さない */
 @media (pointer: coarse) {
-  .btn { height: 44px; }
-  .btn-sm { height: 40px; }
-  .icon-btn { height: 44px; width: 44px; }
-  .icon-btn-sm { height: 40px; width: 40px; }
-  .chip { height: 40px; }
+  .btn { min-height: 36px; }
+  .btn-sm { min-height: 36px; }
+  .icon-btn { height: 40px; width: 40px; }
+  .icon-btn-sm { height: 36px; width: 36px; }
+  .chip { height: 36px; }
   .field, textarea, input, select { font-size: 16px; }
   .kbd { display: none; }
 }
+
+/* オーダー列の並べ替え中に揺らす（ファストカルテの rail-wiggle と同じ） */
+@keyframes rail-wiggle { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
+.rail-wiggle { animation: rail-wiggle 0.28s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .rail-wiggle { animation: none; } }
 
 @media print {
   .no-print { display: none !important; }

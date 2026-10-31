@@ -45,7 +45,7 @@ export function CommandPalette({ commands, onClose }: { commands: Command[]; onC
 
   return (
     <div className="no-print fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-[10vh]" onMouseDown={onClose}>
-      <div className="w-[680px] max-w-[92vw] overflow-hidden rounded-[28px] bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="w-[680px] max-w-[92vw] overflow-hidden rounded-2xl bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 px-5">
         <Icon name="search" size={24} className="text-ink-2" />
         <input

@@ -13,6 +13,7 @@ import { OrderBar, OrderRail, type RailId } from './OrderRail'
 import { ChartEditor, PastEditor } from './RightPane'
 import { DiseasePanel } from './DiseasePanel'
 import { RxWindow } from './RxWindow'
+import { SaveSplitButton, loadSaveMode, SAVE_MODES, type SaveMode } from './SaveSplitButton'
 import { Desk, MobileTabBar, NAV, NavRail, type View } from './Desk'
 import { emptyDraft, loadState, reducer, saveState, type Action, type State } from './store'
 import type { Draft, Patient } from './types'
@@ -49,6 +50,11 @@ export default function App() {
   const [dropHover, setDropHover] = useState(false)
   const [saveOk, setSaveOk] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
+  const [help, setHelp] = useState(false)
+  // 確定のあとの行き先（主ボタン）。最後に選んだものを覚える
+  const [saveMode, setSaveMode] = useState<SaveMode>(loadSaveMode)
+  const saveModeRef = useRef(saveMode)
+  saveModeRef.current = saveMode
   const [, tick] = useState(0)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -70,22 +76,23 @@ export default function App() {
   }, [])
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(null), 4000)
+    const t = setTimeout(() => setToast(null), 3000)
     return () => clearTimeout(t)
   }, [toast])
 
   // 病名は確定時にオーダーから自動で更新される（orders.ts の planDiseases）
-  const confirm = () => {
+  const confirm = (m: SaveMode = saveModeRef.current) => {
     const s = stateRef.current
     const p = s.patients.find((x) => x.id === s.currentId)
     if (!p) return
     const secs = s.session ? Math.round((Date.now() - s.session.startedAt) / 1000) : 0
     const ops = s.session?.ops ?? 0
-    const next = s.patients.find((x) => x.status === '待ち' && x.id !== p.id)
+    const next = m === 'next' ? s.patients.find((x) => x.status === '待ち' && x.id !== p.id) : undefined
     setRxOpen(false)
     setTestOpen(false)
-    dispatch({ type: 'confirm' })
-    setToast(`${p.name} を確定（${secs}秒・${ops}操作）${next ? ` → 次：${next.name}` : ' → 待ち患者なし'}`)
+    dispatch({ type: 'confirm', then: m === 'next' ? 'next' : 'list' })
+    if (m !== 'next') setView(m)
+    setToast(`${p.name} を確定（${secs}秒・${ops}操作）${m === 'next' ? (next ? ` → 次：${next.name}` : ' → 待ち患者なし') : ''}`)
   }
 
   const nextPatient = () => {
@@ -148,8 +155,11 @@ export default function App() {
         dispatch({ type: 'op' })
         fn()
       }
+      const typing = e.target instanceof HTMLElement && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))
+      if (e.key === '?' && !mod && !typing) return hit(() => setHelp((v) => !v))
       if (e.key === 'Escape') {
         setMetricsOpen(false)
+        setHelp(false)
         if (closingRef.current) return hit(() => setClosing(null))
         if (winRef.current.rx) return hit(() => setRxOpen(false))
         if (winRef.current.test) return hit(() => setTestOpen(false))
@@ -211,8 +221,8 @@ export default function App() {
       {
         id: 'a-confirm',
         group: '操作',
-        label: '確定して会計へ',
-        keys: 'confirm かくてい かいけい',
+        label: '確定（主ボタンの行き先へ）',
+        keys: 'confirm かくてい かいけい つぎ',
         hint: '⌘Enter',
         run: () => confirm(),
       },
@@ -272,32 +282,30 @@ export default function App() {
     dispatch({ type: 'close' })
   }
 
+  const metricsChips = state.session && (
+    <span className="flex items-center gap-1 text-xs">
+      <span className={`flex h-6 items-center gap-0.5 rounded px-1.5 font-num font-medium ${elapsed > GOAL_SECONDS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`} title="開いてからの時間">
+        <Icon name="timer" size={15} />
+        {fmtSec(elapsed)}
+      </span>
+      <span className={`flex h-6 items-center gap-0.5 rounded px-1.5 font-num font-medium ${ops > GOAL_OPS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`} title="操作数">
+        <Icon name="ads_click" size={15} />
+        {ops}
+      </span>
+    </span>
+  )
+
   return (
-    <div className="flex h-full bg-page">
-      <NavRail view={patient ? null : view} slim={!!patient} onSelect={selectView} />
+    <div className="flex h-full bg-cream">
+      <NavRail view={patient ? null : view} slim={!!patient} patients={state.patients} onSelect={selectView} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print flex h-16 shrink-0 items-center gap-2 pr-3 max-md:h-12 max-md:pl-3">
-          <span className="flex items-center gap-2 pr-2">
-            <BrandWordmark height={22} />
-            <span className="rounded-md bg-primary-ctr px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-on-primary-ctr">保険診療</span>
-          </span>
-          <span className="hidden rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-2 xl:inline">試作・架空データ</span>
-
+        {/* ファストカルテと同じく、パソコンでは上の帯を出さない（ロゴは左の縦メニュー）。スマホだけ出す */}
+        <header className="no-print flex h-12 shrink-0 items-center gap-2 border-b border-line bg-ivory pr-2 pl-3 md:hidden">
+          <BrandWordmark height={20} />
+          <span className="pill">保険診療</span>
           <span className="flex-1" />
-
-          {state.session && (
-            <div className="flex items-center gap-1.5 text-sm">
-              <span className={`flex h-8 items-center gap-1 rounded-lg px-2.5 font-medium ${elapsed > GOAL_SECONDS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`}>
-                <Icon name="timer" size={18} />
-                {fmtSec(elapsed)}
-              </span>
-              <span className={`flex h-8 items-center gap-1 rounded-lg px-2.5 font-medium ${ops > GOAL_OPS ? 'bg-error-ctr text-error' : 'bg-rx-ctr text-rx'}`}>
-                <Icon name="ads_click" size={18} />
-                {ops}
-              </span>
-            </div>
-          )}
-          <button onClick={() => setMetricsOpen(true)} className="icon-btn" title="操作計測（⌘M）">
+          {metricsChips}
+          <button onClick={() => setMetricsOpen(true)} className="icon-btn" title="操作計測">
             <Icon name="monitoring" />
           </button>
         </header>
@@ -311,52 +319,65 @@ export default function App() {
           onReorder={setTabOrder}
           onClose={(id) => (isDirty(stateRef.current.drafts[id]) ? setClosing(id) : closeTab(id))}
           dispatch={dispatch}
+          right={
+            <span className="flex shrink-0 items-center gap-1 pr-1 pl-2 max-md:hidden">
+              {metricsChips}
+              <button onClick={() => setMetricsOpen(true)} className="icon-btn icon-btn-sm" title="操作計測（⌘M）">
+                <Icon name="monitoring" size={18} />
+              </button>
+              <button onClick={() => setHelp(true)} className="icon-btn icon-btn-sm font-medium" title="キー操作（?）">
+                ?
+              </button>
+            </span>
+          }
         />
 
         {patient ? (
-          <>
-            <div className="no-print flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 max-md:gap-x-2 max-md:px-3 max-md:py-2">
-              <span className="max-md:hidden">
-                <PatientIcon patient={patient} size={48} />
-              </span>
-              <div className="whitespace-nowrap">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[22px] leading-7 max-md:text-lg">{patient.name}</span>
-                  <span className="text-sm text-ink-2 max-md:hidden">{patient.kana}</span>
+          <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-3 pb-3 max-md:gap-2 max-md:px-2 max-md:pt-2 max-md:pb-1">
+            {/* 患者の帯（ファストカルテの PatientBanner：白いカードに左の藍の太線、1行に並べる） */}
+            <div className="no-print card shrink-0 overflow-hidden">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-l-4 border-clinical py-2.5 pr-3 pl-4 max-md:gap-x-2.5 max-md:py-2 max-md:pl-3">
+                <span className="max-md:hidden">
+                  <PatientIcon patient={patient} size={34} />
+                </span>
+                <div className="leading-tight whitespace-nowrap">
+                  <div className="text-[11px] text-mist max-md:hidden">{patient.kana}</div>
+                  <h1 className="text-xl font-semibold max-md:text-lg">{patient.name}</h1>
                 </div>
-                <div className="text-xs text-ink-2 max-md:hidden">{birthLabel(patient.birth)}生</div>
+                <span className="font-mono text-sm font-semibold text-clinical max-md:hidden">
+                  <span className="mr-1 font-sans text-[11px] font-normal text-mist">ID</span>
+                  {patient.id.toUpperCase()}
+                </span>
+                <span className="text-line max-md:hidden">|</span>
+                <span className="text-sm whitespace-nowrap">
+                  <span className={patient.sex === '女' ? 'text-red-600' : 'text-clinical'}>{ageSex(patient)}</span>
+                  <span className="text-mist max-md:hidden">・{birthLabel(patient.birth)}</span>
+                </span>
+                {/* アレルギーは無くても「—」で必ず出す（確認したかどうかが分かる） */}
+                <span
+                  className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs whitespace-nowrap max-md:order-last ${
+                    patient.allergies.length ? 'border-red-200 bg-red-50 font-medium text-red-600' : 'border-line text-mist'
+                  }`}
+                >
+                  <Icon name={patient.allergies.length ? 'warning' : 'check'} fill={patient.allergies.length > 0} size={15} />
+                  アレルギー {patient.allergies.length ? patient.allergies.join('、') : '—'}
+                </span>
+                <span className="pill whitespace-nowrap max-md:hidden">
+                  {patient.insurance} {Math.round(patient.burden * 10)}割
+                </span>
+                <span className="pill max-md:hidden">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
+                <span className="flex-1" />
+                <span className={`hidden items-center gap-1 text-[11px] lg:flex ${saveOk ? 'text-mist' : 'font-medium text-error'}`}>
+                  <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={15} />
+                  {saveOk ? (draft.savedAt ? `下書き ${draft.savedAt}` : '下書きなし') : '下書きを保存できません'}
+                </span>
               </div>
-              <span className="text-base font-medium whitespace-nowrap">{ageSex(patient)}</span>
-              {/* アレルギーは無くても「—」で必ず出す（確認したかどうかが分かる） */}
-              <span
-                className={`flex h-8 items-center gap-1 rounded-lg px-3 text-[13px] whitespace-nowrap max-md:order-last ${
-                  patient.allergies.length ? 'bg-error-ctr font-medium text-error' : 'border border-outline-var text-ink-2'
-                }`}
-              >
-                <Icon name={patient.allergies.length ? 'warning' : 'check'} fill={patient.allergies.length > 0} size={18} />
-                アレルギー {patient.allergies.length ? patient.allergies.join('、') : '—'}
-              </span>
-              <span className="flex h-8 items-center gap-1 rounded-lg border border-outline-var px-3 text-[13px] whitespace-nowrap text-ink-2 max-md:hidden">
-                <Icon name="badge" size={18} />
-                {patient.insurance} {Math.round(patient.burden * 10)}割
-              </span>
-              <span className="flex h-8 items-center rounded-lg border border-outline-var px-3 text-[13px] whitespace-nowrap text-ink-2 max-md:hidden">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
-              <span className="flex-1 max-md:hidden" />
-              <span className={`hidden items-center gap-1 text-xs md:flex ${saveOk ? 'text-ink-2' : 'font-medium text-error'}`}>
-                <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={18} />
-                {saveOk ? (draft.savedAt ? `下書き保存 ${draft.savedAt}` : '下書きなし') : '下書きを保存できません'}
-              </span>
-              <button onClick={() => confirm()} className="btn btn-filled max-md:ml-auto max-md:h-10 max-md:px-4">
-                <Icon name="check" size={20} />
-                <span className="md:hidden">確定</span>
-                <span className="max-md:hidden">確定して会計へ</span> <span className="kbd">⌘Enter</span>
-              </button>
             </div>
-            <div role="tablist" aria-label="表示" className="no-print mx-3 mb-2 flex rounded-full bg-surface-2 p-1 md:hidden">
+            <div role="tablist" aria-label="表示" className="no-print flex shrink-0 rounded-lg bg-gold-soft/70 p-1 md:hidden">
               {(
                 [
-                  ['past', `過去の記録（${patient.encounters.length}）`],
-                  ['now', '今回の記載'],
+                  ['past', `経過（${patient.encounters.length}）`],
+                  ['now', '記載'],
                 ] as const
               ).map(([k, l]) => (
                 <button
@@ -364,16 +385,15 @@ export default function App() {
                   role="tab"
                   aria-selected={phonePane === k}
                   onClick={() => setPhonePane(k)}
-                  className={`h-10 flex-1 rounded-full text-sm font-medium ${phonePane === k ? 'bg-white text-ink shadow-sm' : 'text-ink-2'}`}
+                  className={`h-9 flex-1 rounded-md text-sm ${phonePane === k ? 'bg-ivory font-medium text-ink shadow-soft' : 'text-mist'}`}
                 >
                   {l}
                 </button>
               ))}
             </div>
-            <main className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-1 lg:flex-row">
-              <div
-                className={`no-print card min-h-0 shrink-0 basis-[34%] overflow-hidden lg:shrink lg:basis-0 lg:flex-[2] max-md:flex-1 max-md:basis-auto ${phonePane === 'past' ? '' : 'max-md:hidden'}`}
-              >
+            <main className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-5">
+              {/* 左：経過（ファストカルテと同じく、広い画面では経過の列を記載より広く取る 1.3：1） */}
+              <div className={`no-print min-h-0 shrink-0 basis-[34%] lg:shrink lg:basis-0 lg:flex-[1.3] max-md:flex-1 max-md:basis-auto ${phonePane === 'past' ? '' : 'max-md:hidden'}`}>
                 <LeftPane
                   patient={patient}
                   selectedId={editing?.id ?? null}
@@ -405,79 +425,76 @@ export default function App() {
                   }}
                 />
               </div>
-              <div className={`flex min-h-0 flex-1 gap-2 lg:flex-[3] ${phonePane === 'now' ? '' : 'max-md:hidden'}`}>
-                <div className="card relative min-h-0 flex-1 overflow-hidden">
-                  {doDrag && (
-                    <div
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        e.dataTransfer.dropEffect = 'copy'
-                        setDropHover(true)
-                      }}
-                      onDragLeave={() => setDropHover(false)}
-                      onDrop={(e) => {
-                        e.preventDefault()
-                        dispatch({ type: 'mode', mode: { kind: 'chart' } })
-                        dispatch({ type: 'do', encounterId: doDrag.encounterId, parts: doDrag.parts })
-                        const date = patient.encounters.find((x) => x.id === doDrag.encounterId)?.date
-                        setToast(`${date} の${dropLabel(doDrag.parts)}をDoしました`)
-                        setDoDrag(null)
-                        setDropHover(false)
-                      }}
-                      className={`absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] border-2 border-dashed backdrop-blur-[1px] transition-colors ${
-                        dropHover ? 'border-primary bg-primary-ctr/70' : 'border-outline bg-white/70'
-                      }`}
-                    >
-                      <span className="pointer-events-none flex items-center gap-2 rounded-full bg-white px-5 py-3 text-base font-medium shadow-md">
-                        <Icon name="replay" />
-                        ここに落とすと{dropLabel(doDrag.parts)}をDo
-                      </span>
+              <div className={`flex min-h-0 flex-1 gap-3 lg:flex-[1] ${phonePane === 'now' ? '' : 'max-md:hidden'}`}>
+                <div className="card relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                  {/* 保存の帯（ファストカルテの EntryPanel と同じ：左に「記載」、右に確定のボタン） */}
+                  <div className="no-print flex shrink-0 items-center gap-2 border-b border-line px-3 py-1.5">
+                    <span className="text-sm font-semibold">記載</span>
+                    <span className="font-num text-[11px] whitespace-nowrap text-mist max-xl:hidden">{new Date().toLocaleDateString('ja-JP')}</span>
+                    <span className="flex-1" />
+                    <SaveSplitButton mode={saveMode} onMode={setSaveMode} onSave={(m) => confirm(m)} />
+                  </div>
+                  {editing && (
+                    <div className="no-print flex shrink-0 items-center gap-2 border-b border-gold bg-gold-soft px-3 py-1.5 text-xs">
+                      <Icon name="edit" size={15} />
+                      <span className="font-medium">{editing.date} の記録を編集中</span>
+                      <span className="flex-1" />
+                      <button onClick={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} className="rounded border border-gold bg-ivory px-2 py-0.5 hover:bg-cream">
+                        編集をやめる
+                      </button>
                     </div>
                   )}
-                  {mode.kind === 'letter' ? (
-                    <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
-                  ) : mode.kind === 'images' ? (
-                    <PacsPanel patient={patient} draft={draft} onClose={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} />
-                  ) : mode.kind === 'diseases' ? (
-                    <DiseasePanel patient={patient} draft={draft} dispatch={dispatch} />
-                  ) : editing ? (
-                    <PastEditor key={editing.id} encounter={editing} focus={mode.kind === 'edit-past' ? mode.focus : undefined} dispatch={dispatch} />
-                  ) : (
-                    <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} onOpenRx={openRx} onOpenTests={openTests} />
-                  )}
+                  <div className="relative min-h-0 flex-1">
+                    {doDrag && (
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          e.dataTransfer.dropEffect = 'copy'
+                          setDropHover(true)
+                        }}
+                        onDragLeave={() => setDropHover(false)}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          dispatch({ type: 'mode', mode: { kind: 'chart' } })
+                          dispatch({ type: 'do', encounterId: doDrag.encounterId, parts: doDrag.parts })
+                          const date = patient.encounters.find((x) => x.id === doDrag.encounterId)?.date
+                          setToast(`${date} の${dropLabel(doDrag.parts)}をDoしました`)
+                          setDoDrag(null)
+                          setDropHover(false)
+                        }}
+                        className={`absolute inset-0 z-10 flex items-center justify-center transition-colors ${
+                          dropHover ? 'bg-gold-soft/60 ring-2 ring-gold-dark ring-inset' : 'bg-ivory/60 ring-2 ring-line ring-inset'
+                        }`}
+                      >
+                        <span className="pointer-events-none flex items-center gap-1.5 rounded-full bg-ink/90 px-4 py-2 text-sm text-ivory">
+                          <Icon name="replay" size={18} />
+                          ここに落とすと{dropLabel(doDrag.parts)}をDo
+                        </span>
+                      </div>
+                    )}
+                    <div className="h-full">
+                      {mode.kind === 'letter' ? (
+                        <LetterEditor patient={patient} draft={draft} dispatch={dispatch} />
+                      ) : mode.kind === 'images' ? (
+                        <PacsPanel patient={patient} draft={draft} onClose={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} />
+                      ) : mode.kind === 'diseases' ? (
+                        <DiseasePanel patient={patient} draft={draft} dispatch={dispatch} />
+                      ) : editing ? (
+                        <PastEditor key={editing.id} encounter={editing} focus={mode.kind === 'edit-past' ? mode.focus : undefined} dispatch={dispatch} />
+                      ) : (
+                        <ChartEditor key={patient.id} patient={patient} draft={draft} dispatch={dispatch} onOpenRx={openRx} onOpenTests={openTests} />
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <OrderRail
-                  active={railActive}
-                  onSelect={selectRail}
-                />
+                <OrderRail active={railActive} onSelect={selectRail} onSearch={() => setPalette(true)} />
               </div>
             </main>
-          </>
+          </div>
         ) : (
           <Desk view={view} patients={state.patients} dispatch={dispatch} onMetrics={() => setMetricsOpen(true)} />
         )}
 
-        <footer className="no-print touch:hidden flex max-md:hidden shrink-0 flex-wrap gap-x-4 gap-y-1 px-5 py-2 text-xs text-ink-2">
-          {[
-            ['⌘K', '検索・追加'],
-            ['⌘P', '処方'],
-            ['⌘E', '検査'],
-            ['⌘D', 'Do処方'],
-            ['⌘⇧D', '前回記載コピー'],
-            ['⌘L', '紹介状'],
-            ['⌘Enter', '確定'],
-            ['⌘J', '次の患者'],
-          ].map(([k, l]) => (
-            <span key={k} className="flex items-center gap-1">
-              <span className="kbd">{k}</span>
-              {l}
-            </span>
-          ))}
-          <span className="flex-1" />
-          <span>
-            目標：再診 {GOAL_SECONDS}秒・{GOAL_OPS}操作以内
-          </span>
-        </footer>
         {patient ? <OrderBar active={railActive} onSelect={selectRail} /> : <MobileTabBar view={view} onSelect={selectView} />}
       </div>
 
@@ -496,9 +513,10 @@ export default function App() {
       {testOpen && patient && <TestWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setTestOpen(false)} />}
       {rxOpen && patient && <RxWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setRxOpen(false)} />}
       {metricsOpen && <MetricsPanel state={state} dispatch={dispatch} onClose={() => setMetricsOpen(false)} />}
+      {help && <ShortcutsHelp saveLabel={SAVE_MODES.find((m) => m.id === saveMode)!.label} onClose={() => setHelp(false)} />}
+      {/* ファストカルテの「オーダーに追加しました」と同じ、下の真ん中の小さな黒い帯 */}
       {toast && (
-        <div className="no-print fixed bottom-6 left-6 z-50 flex min-w-[344px] items-center gap-3 rounded-lg bg-[#303030] px-4 py-3.5 text-sm text-[#f2f2f2] shadow-lg">
-          <Icon name="check_circle" size={20} className="text-[#a8c7fa]" />
+        <div role="status" className="no-print fixed bottom-24 left-1/2 z-[120] max-w-[90vw] -translate-x-1/2 rounded-full bg-ink/90 px-4 py-1.5 text-xs text-ivory shadow-lg md:bottom-8">
           {toast}
         </div>
       )}
@@ -508,27 +526,69 @@ export default function App() {
 
 const isDirty = (d?: Draft) => !!d && (d.text.trim() !== '' || d.rx.length > 0 || d.tests.length > 0 || !!d.letter)
 
+// ファストカルテのダイアログの形：墨の薄い幕＋白い角丸の箱、主ボタンは藍、ほかは枠だけ
+function Dialog({ label, onCancel, children, wide }: { label: string; onCancel: () => void; children: React.ReactNode; wide?: boolean }) {
+  return (
+    <div className="no-print fixed inset-0 z-[95] flex items-center justify-center p-4">
+      <button aria-label="閉じる" tabIndex={-1} onClick={onCancel} className="absolute inset-0 cursor-default bg-ink/40" />
+      <div role="dialog" aria-modal="true" aria-label={label} className={`relative w-full rounded-2xl border border-line bg-ivory p-5 shadow-2xl ${wide ? 'max-w-2xl' : 'max-w-md'}`}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 // 確定していない患者のタブを✗で閉じるときの確認。下書きは残すのが既定
 function CloseDialog({ patient, onCancel, onKeep, onDiscard }: { patient: Patient; onCancel: () => void; onKeep: () => void; onDiscard: () => void }) {
   return (
-    <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onPointerDown={onCancel}>
-      <div role="alertdialog" aria-modal="true" aria-label="タブを閉じる" className="w-[520px] max-w-full rounded-[28px] bg-surface-1 p-6 shadow-2xl" onPointerDown={(e) => e.stopPropagation()}>
-        <Icon name="edit_note" size={24} className="text-primary" />
-        <h2 className="mt-3 text-2xl">{patient.name}さんのカルテは確定していません</h2>
-        <p className="mt-3 text-sm text-ink-2">記載とオーダーは下書きとして残っています。下書きを残して閉じれば、次に開いたときに続きから書けます。</p>
-        <div className="mt-6 flex flex-wrap justify-end gap-2">
-          <button onClick={onCancel} className="btn btn-text">
-            キャンセル
-          </button>
-          <button onClick={onDiscard} className="btn btn-danger">
-            破棄して閉じる
-          </button>
-          <button autoFocus onClick={onKeep} className="btn btn-filled">
-            下書きを残して閉じる
-          </button>
-        </div>
+    <Dialog label="タブを閉じる" onCancel={onCancel}>
+      <h2 className="text-base font-semibold">{patient.name}さんのカルテは確定していません</h2>
+      <p className="mt-2 text-sm text-mist">記載とオーダーは下書きとして残っています。下書きを残して閉じれば、次に開いたときに続きから書けます。</p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button autoFocus onClick={onKeep} className="rounded-md bg-clinical px-4 py-2 text-sm font-medium text-ivory hover:brightness-110">
+          下書きを残して閉じる
+        </button>
+        <button onClick={onCancel} className="rounded-md border border-line px-3 py-2 text-sm hover:bg-cream">
+          戻る
+        </button>
+        <button onClick={onDiscard} className="ml-auto text-xs text-red-600 underline">
+          破棄して閉じる
+        </button>
       </div>
-    </div>
+    </Dialog>
+  )
+}
+
+// ? で開くキー操作の一覧（ファストカルテの ShortcutsHelp と同じ扱い。入力中は開かない）
+function ShortcutsHelp({ saveLabel, onClose }: { saveLabel: string; onClose: () => void }) {
+  const keys: [string, string][] = [
+    ['⌘K', '検索・追加（薬・検査・病名・セット・操作）'],
+    ['⌘P', '処方'],
+    ['⌘E', '検査'],
+    ['⌘D', 'Do処方（前回と同じ処方）'],
+    ['⌘⇧D', '前回の記載をコピー'],
+    ['⌘L', '紹介状'],
+    ['⌘Enter', saveLabel],
+    ['⌘J', '次の患者'],
+    ['⌘M', '操作計測'],
+    ['Esc', '開いている窓・パネルを閉じる'],
+    ['?', 'この一覧'],
+  ]
+  return (
+    <Dialog label="キー操作" onCancel={onClose}>
+      <h2 className="mb-3 text-base font-semibold">キー操作</h2>
+      <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1.5 text-sm">
+        {keys.map(([k, l]) => (
+          <div key={k} className="contents">
+            <dt>
+              <span className="kbd">{k}</span>
+            </dt>
+            <dd>{l}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-3 text-[11px] text-mist">左の経過は、ダブルクリックで訂正、右へドラッグでDo。処方の表は薬品名を2文字打つと候補が出ます。</p>
+    </Dialog>
   )
 }
 
@@ -543,11 +603,12 @@ type TabsProps = {
   onReorder: (ids: string[]) => void
   onClose: (id: string) => void
   dispatch: (a: Action) => void
+  right?: React.ReactNode
 }
 
 type DragState = { id: string; x: number; at: number; touch: boolean; started: boolean }
 
-function PatientTabs({ view, patients, currentId, closed, order, onReorder, onClose, dispatch }: TabsProps) {
+function PatientTabs({ view, patients, currentId, closed, order, onReorder, onClose, dispatch, right }: TabsProps) {
   const waiting = patients.filter((p) => p.status === '待ち' || p.status === '診察中')
   const rank = (id: string) => (order.includes(id) ? order.indexOf(id) : order.length + patients.findIndex((p) => p.id === id))
   const open = patients.filter((p) => p.id === currentId || ((p.status === '待ち' || p.status === '診察中') && !closed.has(p.id))).sort((a, b) => rank(a.id) - rank(b.id))
@@ -607,15 +668,17 @@ function PatientTabs({ view, patients, currentId, closed, order, onReorder, onCl
     setDragging(null)
   }
 
+  // ファストカルテの AppTabs と同じ：白い帯に並べ、開いているタブは下に藍の線
   const tab = (on: boolean) =>
-    `relative -mb-px flex h-10 max-w-64 touch:h-12 shrink-0 items-center rounded-t-xl text-sm transition-colors ${
-      on ? 'z-10 bg-page font-medium text-ink' : 'text-ink-2 hover:bg-white/60'
+    `relative flex h-9 max-w-56 touch:h-11 shrink-0 items-center text-[12px] transition-colors ${
+      on ? 'z-10 bg-cream font-semibold text-ink shadow-[inset_0_-2px_0_0_var(--color-clinical)]' : 'text-mist hover:bg-gold-soft'
     }`
   return (
-    <div ref={listRef} role="tablist" className="no-print flex shrink-0 items-end gap-0.5 overflow-x-auto bg-surface-2 px-2 pt-2">
-      <button role="tab" aria-selected={home} onClick={goHome} className={`${tab(home)} gap-2 px-3`}>
-        <Icon name={nav.icon} fill={home} size={18} />
-        {nav.label} {view === 'reception' && <span className="text-xs text-ink-2">{waiting.length}</span>}
+    <div className="no-print flex shrink-0 items-stretch border-b border-line bg-ivory">
+    <div ref={listRef} role="tablist" className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
+      <button role="tab" aria-selected={home} onClick={goHome} className={`${tab(home)} gap-1.5 px-3`}>
+        <Icon name={nav.icon} size={16} />
+        {nav.label} {view === 'reception' && <span className="font-num text-[11px] text-mist">{waiting.length}</span>}
       </button>
       {open.map((p, i) => {
         const on = p.id === currentId
@@ -630,7 +693,7 @@ function PatientTabs({ view, patients, currentId, closed, order, onReorder, onCl
             onPointerCancel={onUp}
             className={`group select-none ${tab(on)} ${dragging === p.id ? 'z-20 cursor-grabbing bg-white shadow-md' : ''}`}
           >
-            {!on && !prevOn && dragging !== p.id && <span className="absolute top-2.5 left-0 h-5 w-px bg-outline-var" />}
+            {!on && !prevOn && dragging !== p.id && <span className="absolute top-2 left-0 h-5 w-px bg-line" />}
             <button
               role="tab"
               aria-selected={on}
@@ -638,23 +701,24 @@ function PatientTabs({ view, patients, currentId, closed, order, onReorder, onCl
               className="flex h-full min-w-0 items-center gap-2 pr-1 pl-3"
               title="ドラッグで並べ替え"
             >
-              <PatientIcon patient={p} size={20} />
               <span className="truncate">{p.name}</span>
-              <span className="text-xs whitespace-nowrap text-ink-2">{ageSex(p)}</span>
-              {p.status === '診察中' && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />}
+              <span className="text-[11px] font-normal whitespace-nowrap text-mist">{ageSex(p)}</span>
+              {p.status === '診察中' && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-clinical" />}
             </button>
             <button
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onClose(p.id)}
               aria-label={`${p.name}のタブを閉じる`}
               title="タブを閉じる"
-              className="mr-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-ink/10 hover:text-ink touch:h-9 touch:w-9"
+              className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-mist hover:bg-ink/10 hover:text-ink touch:h-9 touch:w-9"
             >
-              <Icon name="close" size={16} />
+              <Icon name="close" size={15} />
             </button>
           </div>
         )
       })}
+    </div>
+    {right}
     </div>
   )
 }
@@ -663,11 +727,11 @@ function MetricsPanel({ state, dispatch, onClose }: { state: State; dispatch: (a
   const m = state.metrics
   const avg = (f: (x: (typeof m)[number]) => number) => (m.length ? Math.round(m.reduce((s, x) => s + f(x), 0) / m.length) : 0)
   return (
-    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30" onMouseDown={onClose}>
-      <div className="w-[640px] max-w-[92vw] rounded-[28px] bg-surface-1 p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="mb-2 flex items-center gap-3">
-          <Icon name="monitoring" size={24} className="text-primary" />
-          <h2 className="flex-1 text-2xl">操作計測</h2>
+    <Dialog label="操作計測" onCancel={onClose} wide>
+      <div>
+        <div className="mb-2 flex items-center gap-2">
+          <Icon name="monitoring" size={20} className="text-clinical" />
+          <h2 className="flex-1 text-base font-semibold">操作計測</h2>
           <button onClick={onClose} className="icon-btn" title="閉じる（Esc）">
             <Icon name="close" />
           </button>
@@ -676,11 +740,11 @@ function MetricsPanel({ state, dispatch, onClose }: { state: State; dispatch: (a
           患者を開いてから確定までの時間と操作数（クリック＋ショートカット。文字入力は含まない）。目標は再診 {GOAL_SECONDS}秒・{GOAL_OPS}操作以内。
         </p>
         {m.length === 0 ? (
-          <div className="rounded-2xl bg-white py-10 text-center text-ink-2">まだ計測結果がありません</div>
+          <div className="rounded-lg border border-dashed border-line py-10 text-center text-mist">まだ計測結果がありません</div>
         ) : (
-          <div className="overflow-hidden rounded-2xl bg-white">
+          <div className="overflow-hidden rounded-lg border border-line">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs text-ink-2">
+              <thead className="bg-cream text-left text-xs text-mist">
                 <tr>
                   <th className="px-4 py-2 font-medium">患者</th>
                   <th className="font-medium">区分</th>
@@ -725,6 +789,6 @@ function MetricsPanel({ state, dispatch, onClose }: { state: State; dispatch: (a
           </button>
         </div>
       </div>
-    </div>
+    </Dialog>
   )
 }

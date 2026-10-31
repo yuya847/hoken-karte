@@ -30,10 +30,10 @@ type ChartProps = {
 function SectionTitle({ icon, label, tone, children }: { icon: string; label: string; tone: string; children?: React.ReactNode }) {
   return (
     <div className="mb-2 flex items-center gap-2">
-      <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${tone}`}>
-        <Icon name={icon} size={18} />
+      <span className={`flex h-6 w-6 items-center justify-center rounded ${tone}`}>
+        <Icon name={icon} size={16} />
       </span>
-      <span className="flex-1 text-base font-medium whitespace-nowrap">{label}</span>
+      <span className="flex-1 text-sm font-semibold whitespace-nowrap">{label}</span>
       {children}
     </div>
   )
@@ -54,96 +54,95 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
     if (kind === 'set') dispatch({ type: 'applySet', setId: key })
   }
 
+  // ファストカルテの RecordForm と同じ形：1つの枠の中に、上の道具の列・本文・オーダー。枠の下に「下書きは自動保存されます」
+  const tool = 'h-7 shrink-0 inline-flex items-center gap-1 rounded border border-line bg-white px-2 text-xs shadow-sm hover:bg-gold-soft touch:h-9'
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <section className="px-6 pt-5 pb-4 max-md:px-4 max-md:pt-4">
-        <SectionTitle icon="edit_note" label="今回の記載" tone="bg-primary-ctr text-on-primary-ctr">
-          <button onClick={() => dispatch({ type: 'copyLastText' })} className="btn btn-sm btn-text">
-            <Icon name="content_copy" size={18} />
-            前回記載コピー <span className="kbd">⌘⇧D</span>
+    <div className="flex h-full flex-col overflow-y-auto px-4 pt-3 pb-4 max-md:px-3">
+      <div className="rounded-md border border-line bg-ivory">
+        <div className="flex flex-wrap items-center gap-1 border-b border-line bg-cream/60 px-1.5 py-1">
+          <button onClick={() => dispatch({ type: 'copyLastText' })} className={tool} title="前回の記載をコピー（⌘⇧D）">
+            <Icon name="content_copy" size={15} />
+            前回を複製
           </button>
-        </SectionTitle>
+          <button onClick={() => dispatch({ type: 'do' })} className={tool} title="前回と同じ処方（⌘D）">
+            <Icon name="replay" size={15} />
+            Do処方
+          </button>
+          <button onClick={onOpenRx} className={`${tool} max-md:hidden`} title="処方（⌘P）">
+            <Icon name="medication" size={15} className="text-rx" />
+            処方
+          </button>
+          <button onClick={onOpenTests} className={`${tool} max-md:hidden`} title="検査（⌘E）">
+            <Icon name="biotech" size={15} className="text-lab" />
+            検査
+          </button>
+        </div>
         <textarea
           ref={textRef}
           value={draft.text}
           onChange={(e) => dispatch({ type: 'text', text: e.target.value })}
-          placeholder={`自由記載（主訴・所見・評価・方針）\n${VITALS_HINT}`}
-          className="field h-48 resize-y px-4 py-3 text-[15px] leading-relaxed max-md:h-40"
+          placeholder={`ここに自由に記載（主訴・所見・評価・方針）\n${VITALS_HINT}`}
+          className="block h-52 w-full resize-y bg-transparent px-3 py-2 text-[13px] leading-[1.8] outline-none placeholder:text-mist/60 max-md:h-40 max-md:text-base"
         />
-        <div className="mt-1.5 flex min-h-5 items-center gap-1 text-xs text-ink-2">
-          {detected && (
-            <>
-              <Icon name="monitor_heart" size={16} className="text-primary" />
-              読み取ったバイタル：<span className="tabular-nums">{detected}</span>
-            </>
-          )}
-        </div>
-      </section>
+        {detected && (
+          <div className="flex items-center gap-1 px-3 pb-1.5 text-[11px] text-mist">
+            <Icon name="monitor_heart" size={14} className="text-clinical" />
+            読み取ったバイタル：<span className="font-num">{detected}</span>
+          </div>
+        )}
 
-      <div className="mx-6 border-t border-surface-2 max-md:mx-4" />
-
-      <section className="px-6 py-5 max-md:px-4">
-        <SectionTitle icon="assignment" label="オーダー" tone="bg-surface-2 text-ink-2">
-          <button onClick={onOpenRx} className="btn btn-sm btn-tonal max-md:hidden">
-            <Icon name="medication" size={18} />
-            処方 <span className="kbd">⌘P</span>
-          </button>
-          <button onClick={() => dispatch({ type: 'do' })} className="btn btn-sm btn-tonal">
-            <Icon name="replay" size={18} />
-            Do処方 <span className="kbd">⌘D</span>
-          </button>
-          <button onClick={onOpenTests} className="btn btn-sm btn-tonal max-md:hidden">
-            <Icon name="biotech" size={18} />
-            検査 <span className="kbd">⌘E</span>
-          </button>
-        </SectionTitle>
-        <OrderSearch items={ORDER_ITEMS} inputRef={orderRef} placeholder="処方・検査・セットを検索（例：amlo、a1c、kaze）" onPick={pick} />
-
-        <div className="mt-3 space-y-1.5">
-          {empty && (
-            <div className="rounded-xl border border-dashed border-outline-var px-4 py-3 text-sm text-ink-2">
-              オーダーなし — 上の検索欄、Do処方、検査 から追加
-            </div>
-          )}
+        <div className="space-y-2 border-t border-line bg-cream/30 px-2.5 py-2.5">
+          <OrderSearch items={ORDER_ITEMS} inputRef={orderRef} placeholder="オーダーを追加（例：amlo、a1c、kaze）" onPick={pick} />
+          {empty && <div className="px-1 text-xs text-mist">オーダーなし — 検索・Do処方・右のオーダーの列から追加</div>}
           {/* 処方は用法・日数が同じ薬を1つのRpにまとめて表示（富士通カルテと同じ並び）。直すときは処方ウインドウで */}
           {groupRp(draft.rx).map((g, gi) => (
-            <div key={g[0].id} className="flex gap-2 rounded-xl bg-rx-ctr/70 py-1.5 pr-1.5 pl-3 text-sm">
-              <span className="w-8 shrink-0 pt-1.5 text-xs font-medium text-rx">Rp{gi + 1}</span>
+            <div key={g[0].id} className="flex gap-2 rounded-md border border-line bg-ivory p-2 text-sm">
+              <span className="h-fit w-9 shrink-0 rounded bg-rx-ctr py-0.5 text-center text-[11px] text-rx">Rp{gi + 1}</span>
               <div className="min-w-0 flex-1">
                 {g.map((r) => (
                   <div key={r.id} className="flex items-center gap-2">
-                    <button onClick={onOpenRx} className="min-w-0 flex-1 truncate py-1 text-left font-medium hover:underline max-md:whitespace-normal" title="処方ウインドウで直す">
+                    <button onClick={onOpenRx} className="min-w-0 flex-1 truncate text-left font-medium hover:underline max-md:whitespace-normal" title="処方ウインドウで直す">
                       {r.name}
                     </button>
-                    {r.noGeneric && <span className="rounded-md bg-white px-1.5 py-0.5 text-[11px] whitespace-nowrap text-ink-2">後発変更不可</span>}
-                    <span className="text-[13px] whitespace-nowrap text-rx tabular-nums">{doseText(r)}</span>
-                    <button onClick={() => dispatch({ type: 'removeRx', id: r.id })} className="icon-btn icon-btn-sm" aria-label="削除">
-                      <Icon name="close" size={18} />
+                    {r.noGeneric && <span className="pill whitespace-nowrap">後発変更不可</span>}
+                    <span className="text-[13px] whitespace-nowrap text-rx font-num">{doseText(r)}</span>
+                    <button onClick={() => dispatch({ type: 'removeRx', id: r.id })} className="flex h-6 w-6 items-center justify-center rounded text-red-600 hover:bg-red-50" aria-label="削除">
+                      <Icon name="close" size={16} />
                     </button>
                   </div>
                 ))}
-                <div className="flex gap-4 pr-10 pb-0.5 text-[13px] text-ink-2">
+                <div className="flex gap-4 pr-8 text-xs text-mist">
                   <span className="flex-1 text-right">{usageLine(g[0])}</span>
-                  <span className="w-14 text-right tabular-nums">{daysText(g[0]) || g[0].site}</span>
+                  <span className="w-14 text-right font-num">{daysText(g[0]) || g[0].site}</span>
                 </div>
               </div>
             </div>
           ))}
           {draft.tests.map((t) => (
-            <div key={t.id} className="rounded-xl bg-lab-ctr/70 py-1.5 pr-1.5 pl-3 text-sm">
+            <div key={t.id} className="rounded-md border border-line bg-ivory p-2 text-sm">
               <div className="flex items-center gap-2">
-                <Icon name="biotech" size={18} className="text-lab" />
+                <span className="w-9 shrink-0 rounded bg-lab-ctr py-0.5 text-center text-[11px] text-lab">検査</span>
                 <span className="flex-1 truncate font-medium">{t.name}</span>
-                <button onClick={() => dispatch({ type: 'removeTest', id: t.id })} className="icon-btn icon-btn-sm" aria-label="削除">
-                  <Icon name="close" size={18} />
+                <button onClick={() => dispatch({ type: 'removeTest', id: t.id })} className="flex h-6 w-6 items-center justify-center rounded text-red-600 hover:bg-red-50" aria-label="削除">
+                  <Icon name="close" size={16} />
                 </button>
               </div>
             </div>
           ))}
         </div>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2 px-0.5 text-[11px] text-mist">
+        下書きは自動保存されます
+        {(draft.text || !empty) && (
+          <button onClick={() => dispatch({ type: 'discardDraft', patientId: patient.id })} className="text-clinical hover:underline">
+            破棄
+          </button>
+        )}
+      </div>
 
+      <div className="mt-4">
         <DxStrip patient={patient} draft={draft} dispatch={dispatch} />
-      </section>
+      </div>
     </div>
   )
 }
@@ -169,12 +168,12 @@ export function PastEditor({ encounter, focus, dispatch }: { encounter: Encounte
         <button onClick={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} className="icon-btn" title="やめる（Esc）">
           <Icon name="arrow_back" />
         </button>
-        <h2 className="flex-1 text-[22px] max-md:text-lg">
+        <h2 className="flex-1 text-base font-semibold">
           {encounter.date} {encounter.kind} を訂正
         </h2>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto px-6 pb-3 max-md:px-4">
-        <div className="flex items-center gap-2 rounded-xl bg-doc-ctr px-3 py-2 text-sm text-doc">
+        <div className="flex items-center gap-2 rounded-md bg-doc-ctr px-3 py-2 text-sm text-doc">
           <Icon name="history" size={18} />
           保存すると v{encounter.version + 1} になり、元の版は履歴に残ります
         </div>
@@ -183,7 +182,7 @@ export function PastEditor({ encounter, focus, dispatch }: { encounter: Encounte
 
         <section ref={ordersRef} className="scroll-mt-2 space-y-2">
           <SectionTitle icon="assignment" label="この日のオーダー" tone="bg-surface-2 text-ink-2" />
-          {rx.length === 0 && tests.length === 0 && <div className="rounded-xl border border-dashed border-outline-var px-4 py-3 text-sm text-ink-2">オーダーなし</div>}
+          {rx.length === 0 && tests.length === 0 && <div className="rounded-md border border-dashed border-outline-var px-4 py-3 text-sm text-ink-2">オーダーなし</div>}
           {rx.map((r) => (
             <RxCard
               key={r.id}
@@ -210,7 +209,7 @@ export function PastEditor({ encounter, focus, dispatch }: { encounter: Encounte
           <details className="text-sm">
             <summary className="cursor-pointer text-ink-2">過去の版（{encounter.history.length}）</summary>
             {encounter.history.map((h) => (
-              <div key={h.version} className="mt-1.5 rounded-xl bg-surface-1 p-3">
+              <div key={h.version} className="mt-1.5 rounded-md bg-surface-1 p-3">
                 <div className="text-xs text-ink-2">
                   v{h.version} · {new Date(h.savedAt).toLocaleString('ja-JP')}まで
                 </div>

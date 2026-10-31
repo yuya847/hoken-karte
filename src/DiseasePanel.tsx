@@ -56,7 +56,7 @@ function PlanChips({ plan, dispatch }: { plan: DxPlan; dispatch: (a: Action) => 
 function Row({ d, dispatch }: { d: Disease; dispatch: (a: Action) => void }) {
   const ended = d.status !== '継続'
   return (
-    <div className={`flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm ${ended ? 'bg-surface-1 text-ink-2' : 'bg-dx-ctr/60'}`}>
+    <div className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm ${ended ? 'bg-surface-1 text-ink-2' : 'bg-dx-ctr/60'}`}>
       <button
         onClick={() => dispatch({ type: 'updateDisease', id: d.id, patch: { main: !d.main } })}
         className={`icon-btn icon-btn-sm ${d.main ? 'text-primary' : 'text-outline'}`}
@@ -108,7 +108,7 @@ export function DiseasePanel({ patient, draft, dispatch }: { patient: Patient; d
         <button onClick={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} className="icon-btn" title="記載に戻る（Esc）">
           <Icon name="arrow_back" />
         </button>
-        <h2 className="flex-1 text-[22px]">病名</h2>
+        <h2 className="flex-1 text-base font-semibold">病名</h2>
       </div>
       <div className="flex-1 space-y-5 overflow-y-auto px-6 pb-5">
         <p className="flex items-start gap-1.5 text-xs text-ink-2">

@@ -40,18 +40,18 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
   }
 
   return (
-    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-3 max-md:p-0" onPointerDown={onClose}>
+    <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-3 max-md:p-0" onPointerDown={onClose}>
       <div
         role="dialog"
         aria-label="処方"
-        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-[28px] bg-surface-1 shadow-2xl max-md:h-full max-md:rounded-none max-md:pt-[env(safe-area-inset-top)]"
+        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-2xl border border-line bg-cream shadow-2xl max-md:h-full max-md:rounded-none max-md:pt-[env(safe-area-inset-top)]"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex flex-wrap items-center gap-3 px-6 pt-5 pb-3 max-md:gap-2 max-md:px-4 max-md:pt-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rx-ctr text-rx">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-rx-ctr text-rx">
             <Icon name="medication" size={22} />
           </span>
-          <h2 className="text-[22px] whitespace-nowrap">処方</h2>
+          <h2 className="text-base font-semibold whitespace-nowrap">処方</h2>
           {patient.allergies.length > 0 && (
             <span className="flex items-center gap-1 rounded-lg bg-error-ctr px-2.5 py-1 text-xs font-medium text-error max-md:order-last max-md:w-full">
               <Icon name="warning" fill size={16} />
@@ -73,7 +73,7 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
 
         <div className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3 lg:flex-row">
           {/* 薬を探す */}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-3xl bg-white">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-lg bg-white">
             <div className="px-4 pt-4">
               <div className="relative">
                 <Icon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-2" />
@@ -90,7 +90,7 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
                     }
                   }}
                   placeholder="薬を検索（例：amlo、あむろ、ろきそ）Enterで追加"
-                  className="h-12 w-full rounded-full bg-surface-1 pr-4 pl-10 text-sm outline-none placeholder:text-ink-2/70 focus:bg-white focus:shadow-md"
+                  className="h-9 w-full rounded-md border border-line bg-white pr-3 pl-10 text-sm outline-none placeholder:text-mist/70 focus:border-clinical"
                 />
               </div>
               <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
@@ -109,7 +109,7 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
                   <button
                     key={d.id}
                     onClick={() => toggle(d.id)}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${on ? 'bg-rx-ctr' : 'hover:bg-surface-1'}`}
+                    className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors ${on ? 'bg-rx-ctr' : 'hover:bg-surface-1'}`}
                   >
                     <Icon name={on ? 'check_circle' : 'add_circle'} fill={on} size={22} className={on ? 'text-rx' : 'text-ink-2'} />
                     <span className="min-w-0 flex-1">
@@ -127,7 +127,7 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
           </div>
 
           {/* 今回の処方（表に直接打てる） */}
-          <div className="flex min-h-0 min-w-0 flex-col rounded-3xl bg-white lg:flex-[1.35] max-lg:flex-1">
+          <div className="flex min-h-0 min-w-0 flex-col rounded-lg bg-white lg:flex-[1.35] max-lg:flex-1">
             <div className="flex items-center gap-2 px-5 pt-4 pb-2">
               <span className="flex-1 text-base font-medium">今回の処方</span>
               <span className="label">{draft.rx.length}剤</span>
@@ -169,7 +169,7 @@ export function RxCard({ r, onChange, onRemove }: { r: RxItem; onChange: (patch:
   const head = 'w-12 shrink-0 text-xs text-ink-2'
 
   return (
-    <div className="rounded-2xl bg-rx-ctr/70 px-3 py-2.5 text-sm">
+    <div className="rounded-lg bg-rx-ctr/70 px-3 py-2.5 text-sm">
       <div className="flex items-center gap-2">
         <Icon name="medication" size={18} className="text-rx" />
         <span className="flex-1 truncate font-medium">{r.name}</span>

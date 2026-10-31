@@ -33,7 +33,7 @@ export function PacsPanel({ patient, draft, onClose }: { patient: Patient; draft
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e0f7fa] text-[#00696f]">
           <Icon name="radiology" size={20} />
         </span>
-        <h2 className="flex-1 text-[22px]">画像（PACS）</h2>
+        <h2 className="flex-1 text-base font-semibold">画像（PACS）</h2>
         <span className={`flex items-center gap-1 text-xs whitespace-nowrap ${cfg.pacsViewer ? 'text-ink-2' : 'text-error'}`}>
           <Icon name={cfg.pacsViewer ? 'link' : 'link_off'} size={16} />
           {cfg.pacsViewer ? 'PACS連携あり' : 'PACS未設定'}
@@ -59,7 +59,7 @@ export function PacsPanel({ patient, draft, onClose }: { patient: Patient; draft
         <section>
           <div className="label mb-1.5">過去の画像（{studies.length}件）</div>
           {studies.length === 0 ? (
-            <div className="rounded-2xl bg-surface-1 py-10 text-center text-sm text-ink-2">PACSにこの患者の画像はありません</div>
+            <div className="rounded-lg bg-surface-1 py-10 text-center text-sm text-ink-2">PACSにこの患者の画像はありません</div>
           ) : (
             <div className="space-y-1.5">
               {studies.map((s) => {
@@ -69,7 +69,7 @@ export function PacsPanel({ patient, draft, onClose }: { patient: Patient; draft
                   <div
                     key={s.uid}
                     onClick={() => cfg.pacsViewer && open(cfg.pacsViewer, s)}
-                    className={`flex flex-wrap items-center gap-3 rounded-2xl bg-surface-1 px-3 py-2.5 text-sm ${cfg.pacsViewer ? 'cursor-pointer hover:bg-surface-2' : ''}`}
+                    className={`flex flex-wrap items-center gap-3 rounded-lg bg-surface-1 px-3 py-2.5 text-sm ${cfg.pacsViewer ? 'cursor-pointer hover:bg-surface-2' : ''}`}
                   >
                     <span className={`flex h-10 w-14 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${m.tone}`}>{m.label}</span>
                     <span className="min-w-0 flex-1">
