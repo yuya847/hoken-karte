@@ -10,7 +10,7 @@ const MODALITY: Record<Study['modality'], { label: string; tone: string }> = {
   US: { label: 'エコー', tone: 'bg-[#fff3e0] text-[#8a4b00]' },
 }
 
-const IMAGING = new Set(TESTS.filter((t) => t.group === '画像').map((t) => t.code))
+const IMAGING = new Set(TESTS.filter((t) => t.group === 'X線' || t.group === 'CT' || t.group === 'MRI').map((t) => t.code))
 
 // 右端の「画像」で開く。画像そのものはPACSのビューアで見る（カルテの中に画像を持たない）。
 // 検査一覧は試作では架空（data.ts の STUDIES）。本番は DICOMweb で取得する。

@@ -19,6 +19,9 @@ export const SITES = ['前胸部', '背部', '腰部', '両膝', '肩', '両下�
 
 type Ext = Pick<RxItem, 'form' | 'perUse' | 'site'>
 export const isExternal = (r: Ext) => r.form === 'external'
+// 用法をまだ選んでいない薬（追加した直後）
+export const isBlank = (r: Pick<RxItem, 'usage'>) => !r.usage
+export const BLANK_LABEL = '用法未入力'
 export const TIMES = [1, 2, 3, 4] as const
 
 export type Usage = { times: number | null; timing: string } // times が null なら頓用
@@ -40,6 +43,7 @@ export const perDose = (r: Pick<RxItem, 'dose' | 'usage'> & Ext) => {
 
 // 1回1錠（1日3錠）／頓用は 1回2錠／外用は総量 7枚
 export const doseText = (r: Pick<RxItem, 'dose' | 'usage' | 'unit'> & Ext) => {
+  if (isBlank(r)) return ''
   if (isExternal(r)) return `${num(r.dose)}${r.unit}`
   const { times } = parseUsage(r.usage)
   return times ? `1回${num(r.dose / times)}${r.unit}（1日${num(r.dose)}${r.unit}）` : `1回${num(r.dose)}${r.unit}`
@@ -52,13 +56,14 @@ export const usageText = (usage: string) => {
 }
 
 // 外用は日数を書かない（総量で出す）
-export const daysText = (r: Pick<RxItem, 'days' | 'usage'> & Ext) => (isExternal(r) ? '' : `${r.days}${parseUsage(r.usage).times ? '日分' : '回分'}`)
+export const daysText = (r: Pick<RxItem, 'days' | 'usage'> & Ext) => (isExternal(r) || isBlank(r) ? '' : `${r.days}${parseUsage(r.usage).times ? '日分' : '回分'}`)
 
 // 用法の行：内服は 1日3回 毎食後、外用は 1日1回 貼付（1回1枚）
-export const usageLine = (r: Pick<RxItem, 'usage' | 'unit'> & Ext) => (isExternal(r) ? `${usageText(r.usage)}（1回${num(r.perUse ?? 1)}${r.unit}）` : usageText(r.usage))
+export const usageLine = (r: Pick<RxItem, 'usage' | 'unit'> & Ext) => (isBlank(r) ? BLANK_LABEL : isExternal(r) ? `${usageText(r.usage)}（1回${num(r.perUse ?? 1)}${r.unit}）` : usageText(r.usage))
 
 // 1行にまとめた表記（経過・紹介状・検索候補用）：ロキソプロフェン錠60mg 1回1錠 1日3回 毎食後 5日分
 export const rxLine = (r: Pick<RxItem, 'name' | 'dose' | 'usage' | 'unit' | 'days'> & Ext) => {
+  if (isBlank(r)) return `${r.name} ${BLANK_LABEL}`
   if (isExternal(r)) return `${r.name} ${num(r.dose)}${r.unit} ${usageLine(r)}${r.site ? ` ${r.site}` : ''}`
   const u = parseUsage(r.usage)
   return `${r.name} 1回${num(perDose(r))}${r.unit} ${usageText(r.usage)} ${r.days}${u.times ? '日分' : '回分'}`
@@ -68,7 +73,7 @@ export const rxLine = (r: Pick<RxItem, 'name' | 'dose' | 'usage' | 'unit' | 'day
 export const groupRp = <T extends Pick<RxItem, 'usage' | 'days'> & Ext>(items: T[]): T[][] => {
   const groups: T[][] = []
   for (const r of items) {
-    const g = isExternal(r) ? undefined : groups.find((x) => !isExternal(x[0]) && x[0].usage === r.usage && x[0].days === r.days)
+    const g = isExternal(r) || isBlank(r) ? undefined : groups.find((x) => !isExternal(x[0]) && x[0].usage === r.usage && x[0].days === r.days)
     if (g) g.push(r)
     else groups.push([r])
   }

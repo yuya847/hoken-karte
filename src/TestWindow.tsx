@@ -1,24 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { Icon } from './Icon'
-import { EXTERNAL_IMAGING, SETS, TESTS, TEST_GROUPS } from './data'
+import { EXTERNAL_IMAGING, ORDER_KINDS, SETS, TESTS, type OrderKind } from './data'
 import type { Action } from './store'
 import type { Draft, Patient } from './types'
 
-// 検査オーダーのウインドウ。分類ごとに項目を並べ、押すとその場で選択・解除する（確定ボタンを挟まない）。
-// 開き方：右端の「検査」・オーダー欄の「検査」・⌘E。閉じる：完了・Esc・外側を押す
-export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Patient; draft: Draft; dispatch: (a: Action) => void; onClose: () => void }) {
+// 点滴・血液検査・単純写真・CT・MRI・生理検査のオーダーのウインドウ（種類ごとに開く）。
+// 分類ごとに項目を並べ、押すとその場で選択・解除する（確定ボタンを挟まない）。
+// 開き方：右端のオーダーの列・⌘E（血液検査）。閉じる：完了・Esc・外側を押す
+export function TestWindow({ kind, patient, draft, dispatch, onClose }: { kind: OrderKind; patient: Patient; draft: Draft; dispatch: (a: Action) => void; onClose: () => void }) {
+  const K = ORDER_KINDS[kind]
+  const inKind = (code: string) => K.groups.some((g) => TESTS.find((t) => t.code === code)?.group === g)
   const [q, setQ] = useState('')
   const ref = useRef<HTMLInputElement>(null)
   useEffect(() => ref.current?.focus(), [])
 
-  const selected = new Set(draft.tests.map((t) => t.code))
-  const last = [...patient.encounters].sort((a, b) => b.date.localeCompare(a.date)).find((e) => e.tests.length > 0)
-  const testSets = SETS.filter((x) => x.tests.length > 0)
+  const mine = draft.tests.filter((t) => inKind(t.code))
+  const selected = new Set(mine.map((t) => t.code))
+  const lastEnc = [...patient.encounters].sort((a, b) => b.date.localeCompare(a.date)).find((e) => e.tests.some((t) => inKind(t.code)))
+  const last = lastEnc && { date: lastEnc.date, tests: lastEnc.tests.filter((t) => inKind(t.code)) }
+  const testSets = SETS.filter((x) => x.tests.length > 0 && x.tests.every(inKind))
 
   const visible = useMemo(() => {
     const terms = toHira(q.trim().toLowerCase()).split(/\s+/).filter(Boolean)
-    return TESTS.filter((t) => terms.every((w) => toHira(`${t.name} ${t.kana} ${t.alias}`.toLowerCase()).includes(w)))
+    return TESTS.filter((t) => K.groups.includes(t.group) && terms.every((w) => toHira(`${t.name} ${t.kana} ${t.alias}`.toLowerCase()).includes(w)))
   }, [q])
 
   const toggle = (code: string) => dispatch({ type: 'toggleTest', code })
@@ -26,15 +31,15 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
     <div className="no-print fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-3 max-md:p-0" onPointerDown={onClose}>
       <div
         role="dialog"
-        aria-label="検査オーダー"
-        className="flex h-[88vh] w-[1040px] max-w-full flex-col overflow-hidden rounded-2xl border border-line bg-cream shadow-2xl max-md:h-full max-md:rounded-none max-md:pt-[env(safe-area-inset-top)]"
+        aria-label={K.label}
+        className={`flex ${K.groups.length > 1 ? 'h-[88vh]' : 'max-h-[88vh]'} w-[1040px] max-w-full flex-col overflow-hidden rounded-2xl border border-line bg-cream shadow-2xl max-md:h-full max-md:rounded-none max-md:pt-[env(safe-area-inset-top)]`}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-6 pt-5 pb-3 max-md:px-4 max-md:pt-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-lab-ctr text-lab">
-            <Icon name="biotech" size={20} />
+          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${K.tone}`}>
+            <Icon name={K.icon} size={20} />
           </span>
-          <h2 className="text-base font-semibold">検査オーダー</h2>
+          <h2 className="text-base font-semibold">{K.label}</h2>
           <span className="flex-1" />
           <button onClick={onClose} className="btn btn-filled">
             <Icon name="check" size={20} />
@@ -76,7 +81,7 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
             ))}
             <span className="flex-1" />
             {selected.size > 0 && (
-              <button onClick={() => dispatch({ type: 'setTests', codes: [] })} className="btn btn-sm btn-danger">
+              <button onClick={() => mine.forEach((t) => toggle(t.code))} className="btn btn-sm btn-danger">
                 すべて解除
               </button>
             )}
@@ -84,12 +89,12 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
         </div>
 
         <div className="mx-3 grid flex-1 auto-rows-min grid-cols-2 gap-x-5 gap-y-4 overflow-y-auto rounded-lg bg-white px-4 py-4 lg:grid-cols-3">
-          {TEST_GROUPS.map((g) => {
+          {K.groups.map((g) => {
             const items = visible.filter((t) => t.group === g)
             if (items.length === 0) return null
             return (
               <div key={g}>
-                <div className="label mb-1.5 px-1">{g}</div>
+                {K.groups.length > 1 && <div className="label mb-1.5 px-1">{g}</div>}
                 <div className="space-y-1">
                   {items.map((t) => {
                     const on = selected.has(t.code)
@@ -113,12 +118,12 @@ export function TestWindow({ patient, draft, dispatch, onClose }: { patient: Pat
               </div>
             )
           })}
-          {visible.length === 0 && <div className="col-span-3 py-8 text-center text-ink-2">該当する検査がありません</div>}
+          {visible.length === 0 && <div className="col-span-3 py-8 text-center text-ink-2">該当する項目がありません</div>}
         </div>
 
         <div className="flex min-h-14 flex-wrap items-center gap-1.5 px-6 py-2.5 text-sm">
           <span className="label mr-1">選択中 {selected.size}件</span>
-          {draft.tests.map((t) => (
+          {mine.map((t) => (
             <span key={t.id} className="inline-flex h-8 items-center gap-1 rounded-lg bg-lab-ctr pr-1 pl-3 text-[13px] font-medium text-lab">
               {t.name}
               <button onClick={() => toggle(t.code)} className="icon-btn h-6 w-6 text-lab" aria-label="解除">

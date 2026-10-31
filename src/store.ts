@@ -136,8 +136,9 @@ export function reducer(s: State, a: Action): State {
       if (!src) return s
       return mapDraft(s, (d) => ({ ...d, text: d.text ? `${d.text}\n${src.text}` : src.text }))
     }
+    // 1回量・1日の回数・用法・日数は入れない（処方の表のその行でキーボードで選ぶ）。Do・セットは前回・セットの値のまま
     case 'addRx':
-      return mapDraft(s, (d) => ({ ...d, rx: mergeRx(d.rx, [rxFromDrug(a.drugId)]) }))
+      return mapDraft(s, (d) => ({ ...d, rx: mergeRx(d.rx, [{ ...rxFromDrug(a.drugId), usage: '', dose: 0, days: 0, perUse: undefined }]) }))
     case 'updateRx':
       return mapDraft(s, (d) => ({ ...d, rx: d.rx.map((r) => (r.id === a.id ? { ...r, ...a.patch } : r)) }))
     case 'removeRx':

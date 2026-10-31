@@ -94,7 +94,7 @@ h1, h2, h3 { text-wrap: balance; }
   .field { @apply w-full rounded border border-line bg-white px-2 py-1.5 text-sm text-ink outline-none transition-colors placeholder:text-mist/60 focus:border-clinical; }
   .field-sm { @apply px-2 py-1; }
 
-  .card { @apply rounded-lg border border-line bg-ivory shadow-soft; }
+  .card { @apply rounded-xl border border-line bg-ivory shadow-soft; }
   .label { @apply text-xs text-mist; }
   .kbd { @apply rounded border border-line bg-cream px-1.5 py-px font-mono text-[11px] text-mist; }
   .btn-filled .kbd { @apply border-ivory/35 bg-transparent text-ivory/85; }

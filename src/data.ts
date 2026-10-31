@@ -38,7 +38,7 @@ export const DRUGS: Drug[] = [
   { id: 'd19', name: 'ヘパリン類似物質油性クリーム0.3%', kana: 'へぱりんるいじぶっしつ ひるどいど', alias: 'hirudo', unit: 'g', dose: 50, usage: '1日2回塗布', days: 0, form: 'external', perUse: 1, site: '両下腿' },
 ]
 
-export const TEST_GROUPS = ['血液学', '生化学', '免疫・血清', '尿・便', '生理', '画像'] as const
+export const TEST_GROUPS = ['点滴', '血液学', '生化学', '免疫・血清', '尿・便', '生理', 'X線', 'CT', 'MRI'] as const
 export type TestGroup = (typeof TEST_GROUPS)[number]
 
 export const TESTS: { code: string; name: string; kana: string; alias: string; group: TestGroup }[] = [
@@ -70,18 +70,44 @@ export const TESTS: { code: string; name: string; kana: string; alias: string; g
   { code: 't27', name: 'ABI', kana: 'えーびーあい', alias: 'abi', group: '生理' },
   { code: 't28', name: '呼吸機能検査', kana: 'こきゅうきのう', alias: 'spiro', group: '生理' },
   { code: 't29', name: '腹部超音波', kana: 'ふくぶえこー', alias: 'us echo', group: '生理' },
-  { code: 't07', name: '胸部X線', kana: 'きょうぶえっくすせん', alias: 'xp', group: '画像' },
-  { code: 't30', name: '腹部X線', kana: 'ふくぶえっくすせん', alias: 'axr', group: '画像' },
+  { code: 't36', name: '睡眠時無呼吸検査（簡易）', kana: 'すいみんじむこきゅう', alias: 'psg sas', group: '生理' },
+  { code: 't07', name: '胸部X線', kana: 'きょうぶえっくすせん', alias: 'xp', group: 'X線' },
+  { code: 't30', name: '腹部X線', kana: 'ふくぶえっくすせん', alias: 'axr', group: 'X線' },
+  { code: 't37', name: '腰椎X線（2方向）', kana: 'ようついえっくすせん', alias: 'xp lumbar', group: 'X線' },
+  { code: 't38', name: '膝関節X線（2方向）', kana: 'しつかんせつえっくすせん ひざ', alias: 'xp knee', group: 'X線' },
   // CT・MRI は確定時に外部（RIS・依頼先）へ送る想定。送信先は 設定 > 外部連携
-  { code: 't31', name: '頭部CT', kana: 'とうぶしーてぃー', alias: 'ct head', group: '画像' },
-  { code: 't32', name: '胸部CT', kana: 'きょうぶしーてぃー', alias: 'ct chest', group: '画像' },
-  { code: 't33', name: '腹部CT', kana: 'ふくぶしーてぃー', alias: 'ct abd', group: '画像' },
-  { code: 't34', name: '頭部MRI', kana: 'とうぶえむあーるあい', alias: 'mri head', group: '画像' },
-  { code: 't35', name: '腰椎MRI', kana: 'ようついえむあーるあい', alias: 'mri lumbar', group: '画像' },
+  { code: 't31', name: '頭部CT', kana: 'とうぶしーてぃー', alias: 'ct head', group: 'CT' },
+  { code: 't32', name: '胸部CT', kana: 'きょうぶしーてぃー', alias: 'ct chest', group: 'CT' },
+  { code: 't33', name: '腹部CT', kana: 'ふくぶしーてぃー', alias: 'ct abd', group: 'CT' },
+  { code: 't39', name: '胸腹部骨盤CT（造影）', kana: 'きょうふくぶこつばんしーてぃー ぞうえい', alias: 'ct cap', group: 'CT' },
+  { code: 't34', name: '頭部MRI', kana: 'とうぶえむあーるあい', alias: 'mri head', group: 'MRI' },
+  { code: 't35', name: '腰椎MRI', kana: 'ようついえむあーるあい', alias: 'mri lumbar', group: 'MRI' },
+  { code: 't40', name: '膝関節MRI', kana: 'しつかんせつえむあーるあい ひざ', alias: 'mri knee', group: 'MRI' },
+  // 点滴（外来での点滴静注）
+  { code: 'i01', name: '生理食塩液 500mL 点滴静注', kana: 'せいりしょくえんえき せいしょく', alias: 'ns saline', group: '点滴' },
+  { code: 'i02', name: 'ソルデム3A輸液 500mL 点滴静注', kana: 'そるでむ いじえき', alias: 'soldem 3a', group: '点滴' },
+  { code: 'i03', name: 'ラクテック注 500mL 点滴静注', kana: 'らくてっく にゅうさんりんげる', alias: 'lactec', group: '点滴' },
+  { code: 'i04', name: '生理食塩液 100mL＋メトクロプラミド注 10mg', kana: 'せいしょく めとくろぷらみど ぷりんぺらん', alias: 'primperan', group: '点滴' },
+  { code: 'i05', name: '5%ブドウ糖液 500mL 点滴静注', kana: 'ぶどうとう', alias: 'd5w glucose', group: '点滴' },
 ]
 
+// オーダーの種類（右端の列・オーダーのウインドウ）。どの分類の項目を扱うか
+export type OrderKind = 'drip' | 'blood' | 'xray' | 'ct' | 'mri' | 'physio'
+export const ORDER_KINDS: Record<OrderKind, { label: string; short: string; groups: TestGroup[]; icon: string; tone: string }> = {
+  drip: { label: '点滴', short: '点滴', groups: ['点滴'], icon: 'water_drop', tone: 'bg-[#e3f2fd] text-[#1565c0]' },
+  blood: { label: '血液検査', short: '血液', groups: ['血液学', '生化学', '免疫・血清', '尿・便'], icon: 'bloodtype', tone: 'bg-lab-ctr text-lab' },
+  xray: { label: '単純写真', short: 'X線', groups: ['X線'], icon: 'radiology', tone: 'bg-surface-2 text-ink' },
+  ct: { label: 'CT', short: 'CT', groups: ['CT'], icon: 'view_in_ar', tone: 'bg-[#e0f7fa] text-[#00696f]' },
+  mri: { label: 'MRI', short: 'MRI', groups: ['MRI'], icon: 'neurology', tone: 'bg-[#ede7f6] text-[#4a2c8f]' },
+  physio: { label: '生理検査', short: '生理', groups: ['生理'], icon: 'monitor_heart', tone: 'bg-[#fff3e0] text-[#8a4b00]' },
+}
+export const kindOfTest = (code: string): OrderKind => {
+  const g = TESTS.find((t) => t.code === code)?.group
+  return (Object.keys(ORDER_KINDS) as OrderKind[]).find((k) => g && ORDER_KINDS[k].groups.includes(g)) ?? 'blood'
+}
+
 // 外部へ依頼する画像検査（CT・MRI）
-export const EXTERNAL_IMAGING = new Set(['t31', 't32', 't33', 't34', 't35'])
+export const EXTERNAL_IMAGING = new Set(['t31', 't32', 't33', 't34', 't35', 't39', 't40'])
 
 export const DISEASES: { name: string; kana: string; alias: string }[] = [
   { name: '高血圧症', kana: 'こうけつあつしょう', alias: 'ht' },

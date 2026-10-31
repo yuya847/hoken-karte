@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { DRUG_CLASS, DRUGS } from './data'
 import { Icon } from './Icon'
-import { daysText, doseText, groupRp, isExternal, parseUsage, usageLine } from './rxFormat'
+import { BLANK_LABEL, daysText, doseText, groupRp, isBlank, isExternal, parseUsage, usageLine } from './rxFormat'
+import { RxUsageEntry } from './RxUsageEntry'
 import type { Action } from './store'
 import type { Draft, RxItem } from './types'
 
 // 処方の表（富士通カルテの院外処方と同じ並び：Rp／後発変更不可／選択薬品／数量／単位）。
 // 最後の行に薬品名を直接打つ。2文字で候補が出て、↑↓とEnterで選ぶ（例：「フラ」→フランドルテープ）。
-// 数量は内服なら1日量、外用なら総量。行を押すと下で1回量・用法・日数（外用は部位）を直せる。
+// 薬を入れると、その行で 1回量 → 1日の回数 → いつ → 日数 をキーボードで選ぶ（RxUsageEntry。決まった値は入れておかない）。
+// 数量は内服なら1日量、外用なら総量。用法の行を押すと選び直せる。
 const MIN_CHARS = 2
 
 export function RxTable({
@@ -31,6 +33,19 @@ export function RxTable({
   // 候補から入れた薬を、表に入ったところで選んだ状態にする
   const pending = useRef<string | null>(null)
   const groups = groupRp(draft.rx)
+  // 用法を選んでいる行（Rpの先頭の薬のid）。新しく入った薬は自動でここに入る
+  const [entry, setEntry] = useState<string | null>(() => draft.rx.find(isBlank)?.id ?? null)
+  const prevIds = useRef(new Set(draft.rx.map((r) => r.id)))
+  useEffect(() => {
+    const added = draft.rx.find((r) => !prevIds.current.has(r.id) && isBlank(r))
+    prevIds.current = new Set(draft.rx.map((r) => r.id))
+    if (added) setEntry(added.id)
+    else if (entry && !draft.rx.some((r) => r.id === entry)) setEntry(null)
+  }, [draft.rx, entry])
+  const endEntry = () => {
+    setEntry(null)
+    setTimeout(() => inputRef.current?.focus())
+  }
 
   const candidates = useMemo(() => {
     const w = toHira(q.trim().toLowerCase())
@@ -53,10 +68,13 @@ export function RxTable({
 
   const pick = (drugId: string) => {
     pending.current = drugId
-    if (!draft.rx.some((r) => r.drugId === drugId)) dispatch({ type: 'addRx', drugId })
-    else onSelect(draft.rx.find((r) => r.drugId === drugId)!.id)
     setQ('')
-    inputRef.current?.focus()
+    const cur = draft.rx.find((r) => r.drugId === drugId)
+    if (!cur) dispatch({ type: 'addRx', drugId })
+    else {
+      onSelect(cur.id)
+      setEntry(cur.id)
+    }
   }
 
   const set = (r: RxItem, patch: Partial<RxItem>) => dispatch({ type: 'updateRx', id: r.id, patch })
@@ -106,6 +124,9 @@ export function RxTable({
                   {r.name}
                 </td>
                 <td className={cell} onClick={(e) => e.stopPropagation()}>
+                  {isBlank(r) ? (
+                    <span className="block pr-1 text-right text-ink-2/50">—</span>
+                  ) : (
                   <input
                     value={r.dose}
                     onChange={(e) => set(r, { dose: Number(e.target.value) || 0 })}
@@ -114,6 +135,7 @@ export function RxTable({
                     aria-label={`${r.name} ${isExternal(r) ? '総量' : u.times ? '1日量' : '1回量'}`}
                     className={numInput}
                   />
+                  )}
                 </td>
                 <td className={`${cell} px-1`}>{r.unit}</td>
                 <td className={`${cell} px-0`} onClick={(e) => e.stopPropagation()}>
@@ -123,11 +145,38 @@ export function RxTable({
                 </td>
               </tr>
             ))}
+            {entry === head.id ? (
+              <tr className="bg-primary-ctr/40">
+                <td />
+                <td />
+                <td colSpan={4} className="px-2">
+                  <RxUsageEntry
+                    key={head.id + head.usage}
+                    group={g}
+                    onCommit={(ps) => {
+                      ps.forEach((x) => dispatch({ type: 'updateRx', id: x.id, patch: x.patch }))
+                      endEntry()
+                    }}
+                    onCancel={endEntry}
+                  />
+                </td>
+              </tr>
+            ) : isBlank(head) ? (
+              <tr className="bg-error-ctr/40">
+                <td />
+                <td />
+                <td colSpan={4} className="px-2 py-1 text-[13px]">
+                  <button onClick={() => setEntry(head.id)} className="font-medium text-error hover:underline">
+                    {BLANK_LABEL} — 押して1日の回数・用法・日数を選ぶ
+                  </button>
+                </td>
+              </tr>
+            ) : (
             <tr className="bg-surface-1/60">
               <td />
               <td />
               <td className={sub}>
-                <button onClick={() => onSelect(head.id)} className="hover:underline" title="押すと用法を直せます">
+                <button onClick={() => setEntry(head.id)} className="hover:underline" title="押すとこの行で用法を選び直せます">
                   {usageLine(head)}
                   {!ext && u.times && g.length === 1 && <span className="text-ink-2">（{doseText(head).split('（')[0]}）</span>}
                 </button>
@@ -154,7 +203,8 @@ export function RxTable({
               )}
               <td />
             </tr>
-            {ext && (
+            )}
+            {ext && !isBlank(head) && (
               <tr className="bg-surface-1/60">
                 <td />
                 <td />

@@ -31,43 +31,40 @@ const ROW_TINT: Record<QueueStatus, string> = {
   済: 'bg-cream/50 text-mist',
 }
 
-// 左の縦メニュー（ファストカルテの NavRail と同じ形：白地・右に細い線・押している項目は金の面）。
-// カルテを開いている間は細くして記載欄の幅を保つ。赤い数字は 受付＝待ち、会計＝会計待ち の人数
-export function NavRail({ view, slim, patients, onSelect }: { view: View | null; slim: boolean; patients: Patient[]; onSelect: (v: View) => void }) {
+// 左の縦メニュー。Material Design 3 のナビゲーションレール（幅80px固定。カルテを開いても幅は変えない）。
+// 押している項目はアイコンの後ろに横長の丸い面。赤い数字は 受付＝待ち、会計＝会計待ち の人数
+export function NavRail({ view, patients, onSelect }: { view: View | null; patients: Patient[]; onSelect: (v: View) => void }) {
   const badge: Partial<Record<View, number>> = {
     reception: patients.filter((p) => p.status === '待ち').length,
     accounting: patients.filter((p) => p.status === '会計待ち').length,
   }
   return (
-    <aside aria-label="メニュー" className={`no-print flex shrink-0 flex-col items-center border-r border-line bg-ivory pt-2 pb-3 max-md:hidden ${slim ? 'w-14' : 'w-[76px]'}`}>
-      <span className="mb-2 flex flex-col items-center gap-1" title="ファストカルテ 保険診療">
-        <BrandIcon size={slim ? 30 : 34} />
-        {!slim && <span className="text-[10px] leading-none font-semibold tracking-tight text-clinical">保険診療</span>}
+    <aside aria-label="メニュー" className="no-print flex w-20 shrink-0 flex-col items-center gap-1 border-r border-line bg-ivory pt-3 pb-3 max-md:hidden">
+      <span className="mb-4 flex h-14 items-center" title="ファストカルテ 保険診療">
+        <BrandIcon size={40} />
       </span>
-      <div className="flex w-full flex-col gap-0.5 px-1.5">
-        {NAV.map((n) => {
-          const on = view === n.id
-          const count = badge[n.id] ?? 0
-          return (
-            <button
-              key={n.id}
-              onClick={() => onSelect(n.id)}
-              aria-current={on ? 'page' : undefined}
-              className={`relative flex flex-col items-center gap-0.5 rounded-lg py-2 transition-colors ${slim ? 'text-[10px]' : 'text-[11px]'} ${
-                on ? 'bg-gold-soft font-semibold text-ink' : 'text-mist hover:bg-cream hover:text-ink'
-              }`}
-            >
-              <Icon name={n.icon} size={22} className={on ? 'ms-bold' : ''} />
-              {n.label}
+      {NAV.map((n) => {
+        const on = view === n.id
+        const count = badge[n.id] ?? 0
+        return (
+          <button
+            key={n.id}
+            onClick={() => onSelect(n.id)}
+            aria-current={on ? 'page' : undefined}
+            className={`group flex w-full flex-col items-center gap-1 pb-2 text-xs ${on ? 'font-semibold text-ink' : 'font-medium text-mist'}`}
+          >
+            <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${on ? 'bg-gold-soft' : 'group-hover:bg-ink/6'}`}>
+              <Icon name={n.icon} fill={on} size={22} />
               {count > 0 && (
-                <span className="absolute top-0.5 right-1 min-w-[1.125rem] rounded-full bg-red-600 px-1 text-center text-[10px] leading-[1.125rem] font-bold text-white">{count}</span>
+                <span className="absolute -top-1 right-1.5 min-w-4 rounded-full bg-error px-1 text-center text-[11px] leading-4 font-medium text-white">{count}</span>
               )}
-            </button>
-          )
-        })}
-      </div>
+            </span>
+            {n.label}
+          </button>
+        )
+      })}
       <span className="flex-1" />
-      {!slim && <span className="line-clamp-2 px-1 text-center text-[10px] text-mist">青木 医師（Dr）</span>}
+      <span className="px-1 text-center text-[10px] leading-tight text-mist">青木 医師</span>
     </aside>
   )
 }
@@ -83,9 +80,11 @@ export function MobileTabBar({ view, onSelect }: { view: View | null; onSelect: 
             key={n.id}
             onClick={() => onSelect(n.id)}
             aria-current={on ? 'page' : undefined}
-            className={`flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] ${on ? 'font-medium text-ink' : 'text-mist'}`}
+            className={`flex h-16 flex-1 flex-col items-center justify-center gap-1 text-xs ${on ? 'font-semibold text-ink' : 'font-medium text-mist'}`}
           >
-            <Icon name={n.icon} size={22} className={on ? 'ms-bold' : ''} />
+            <span className={`flex h-8 w-14 items-center justify-center rounded-full ${on ? 'bg-gold-soft' : ''}`}>
+              <Icon name={n.icon} fill={on} size={22} />
+            </span>
             {n.label}
           </button>
         )

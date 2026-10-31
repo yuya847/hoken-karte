@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { DRUGS, SETS, TESTS } from './data'
+import { DRUGS, ORDER_KINDS, SETS, TESTS, kindOfTest } from './data'
 import { vitalsLine } from './LeftPane'
 import { Icon } from './Icon'
-import { daysText, doseText, groupRp, rxLine, usageLine } from './rxFormat'
+import { daysText, doseText, groupRp, isBlank, rxLine, usageLine } from './rxFormat'
 import { RxCard } from './RxWindow'
 import { DxStrip } from './DiseasePanel'
 import { OrderSearch, type SearchItem } from './OrderSearch'
@@ -14,7 +14,7 @@ import { parseVitals } from './vitals'
 const ORDER_ITEMS: SearchItem[] = [
   ...SETS.map((x) => ({ id: `set:${x.id}`, label: x.name, keys: `${x.kana} ${x.alias}`, icon: 'playlist_add', iconClass: 'text-primary', tag: 'セット' })),
   ...DRUGS.map((d) => ({ id: `rx:${d.id}`, label: d.name, sub: `${doseText(d)} ${usageLine(d)} ${daysText(d) || (d.site ?? '')}`, keys: `${d.kana} ${d.alias}`, icon: 'medication', iconClass: 'text-rx', tag: '処方' })),
-  ...TESTS.map((t) => ({ id: `test:${t.code}`, label: t.name, keys: `${t.kana} ${t.alias}`, icon: 'biotech', iconClass: 'text-lab', tag: '検査' })),
+  ...TESTS.map((t) => ({ id: `test:${t.code}`, label: t.name, keys: `${t.kana} ${t.alias}`, icon: ORDER_KINDS[kindOfTest(t.code)].icon, iconClass: 'text-lab', tag: ORDER_KINDS[kindOfTest(t.code)].short })),
 ]
 
 const VITALS_HINT = 'BP 128/78　HR 72　BT 36.5　SpO2 98　BW 62.4 のように書くとバイタルとして読み取ります'
@@ -49,7 +49,11 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
 
   const pick = (id: string) => {
     const [kind, key] = [id.slice(0, id.indexOf(':')), id.slice(id.indexOf(':') + 1)]
-    if (kind === 'rx') dispatch({ type: 'addRx', drugId: key })
+    if (kind === 'rx') {
+      // 用法はその行で選ぶので、入れたら処方ウインドウを開く
+      dispatch({ type: 'addRx', drugId: key })
+      onOpenRx()
+    }
     if (kind === 'test') dispatch({ type: 'addTest', code: key })
     if (kind === 'set') dispatch({ type: 'applySet', setId: key })
   }
@@ -72,9 +76,9 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
             <Icon name="medication" size={15} className="text-rx" />
             処方
           </button>
-          <button onClick={onOpenTests} className={`${tool} max-md:hidden`} title="検査（⌘E）">
-            <Icon name="biotech" size={15} className="text-lab" />
-            検査
+          <button onClick={() => onOpenTests()} className={`${tool} max-md:hidden`} title="血液検査（⌘E）">
+            <Icon name="bloodtype" size={15} className="text-lab" />
+            血液検査
           </button>
         </div>
         <textarea
@@ -112,7 +116,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
                   </div>
                 ))}
                 <div className="flex gap-4 pr-8 text-xs text-mist">
-                  <span className="flex-1 text-right">{usageLine(g[0])}</span>
+                  <span className={`flex-1 text-right ${isBlank(g[0]) ? 'font-medium text-error' : ''}`}>{usageLine(g[0])}</span>
                   <span className="w-14 text-right font-num">{daysText(g[0]) || g[0].site}</span>
                 </div>
               </div>
@@ -121,7 +125,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
           {draft.tests.map((t) => (
             <div key={t.id} className="rounded-md border border-line bg-ivory p-2 text-sm">
               <div className="flex items-center gap-2">
-                <span className="w-9 shrink-0 rounded bg-lab-ctr py-0.5 text-center text-[11px] text-lab">検査</span>
+                <span className={`w-9 shrink-0 rounded py-0.5 text-center text-[11px] ${ORDER_KINDS[kindOfTest(t.code)].tone}`}>{ORDER_KINDS[kindOfTest(t.code)].short}</span>
                 <span className="flex-1 truncate font-medium">{t.name}</span>
                 <button onClick={() => dispatch({ type: 'removeTest', id: t.id })} className="flex h-6 w-6 items-center justify-center rounded text-red-600 hover:bg-red-50" aria-label="削除">
                   <Icon name="close" size={16} />

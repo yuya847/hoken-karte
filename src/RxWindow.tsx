@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { DAY_PRESETS, DRUG_CLASS, DRUG_CLASSES, DRUGS } from './data'
 import { Icon } from './Icon'
-import { daysText, doseText, EXT_TIMINGS, isExternal, parseUsage, perDose, PRN_TIMINGS, SITES, TIMES, TIMINGS, usageLine, usageOf } from './rxFormat'
+import { daysText, doseText, EXT_TIMINGS, isBlank, isExternal, parseUsage, perDose, PRN_TIMINGS, SITES, TIMES, TIMINGS, usageLine, usageOf } from './rxFormat'
 import { RxTable } from './RxTable'
 import type { Action } from './store'
 import type { Draft, Patient, RxItem } from './types'
@@ -16,8 +16,12 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
   const [filter, setFilter] = useState<Filter>('all')
   const ref = useRef<HTMLInputElement>(null)
   const tableRef = useRef<HTMLInputElement>(null)
-  // 開いたら表の入力行に（そのまま薬品名を打てる）
-  useEffect(() => tableRef.current?.focus(), [])
+  // 開いたら表の入力行に（そのまま薬品名を打てる）。用法を選んでいない薬があれば、その行の入力を先に（RxTable が受け持つ）
+  useEffect(() => {
+    if (!draft.rx.some(isBlank)) tableRef.current?.focus()
+    // 開いたときだけ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [selected, setSelected] = useState<string | null>(null)
   const sel = draft.rx.find((r) => r.id === selected) ?? null
 
@@ -134,7 +138,8 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
             </div>
             <div className="flex-1 overflow-y-auto px-3 pb-3">
               <RxTable draft={draft} history={history} dispatch={dispatch} inputRef={tableRef} selected={sel?.id ?? null} onSelect={setSelected} />
-              {sel && (
+              {/* 内服の用法は表の行で選ぶ。下の詳しい欄は外用薬の部位・1回量を直すときだけ */}
+              {sel && isExternal(sel) && !isBlank(sel) && (
                 <div className="mt-3">
                   <RxCard r={sel} onChange={(patch) => dispatch({ type: 'updateRx', id: sel.id, patch })} onRemove={() => dispatch({ type: 'removeRx', id: sel.id })} />
                 </div>

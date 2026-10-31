@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { CommandPalette, type Command } from './CommandPalette'
-import { DISEASES, DRUGS, SETS, TESTS } from './data'
+import { DISEASES, DRUGS, ORDER_KINDS, SETS, TESTS, kindOfTest, type OrderKind } from './data'
 import { LeftPane, type DoDrag } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { Icon } from './Icon'
 import { BrandWordmark } from './BrandMark'
-import { daysText, doseText, usageLine } from './rxFormat'
+import { daysText, doseText, isBlank, usageLine } from './rxFormat'
 import { PacsPanel } from './PacsPanel'
 import { TestWindow } from './TestWindow'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
@@ -32,9 +32,10 @@ export default function App() {
   const [metricsOpen, setMetricsOpen] = useState(false)
   const [view, setView] = useState<View>('reception')
   const [rxOpen, setRxOpen] = useState(false)
-  const [testOpen, setTestOpen] = useState(false)
+  // 開いているオーダーのウインドウ（点滴・血液検査・単純写真・CT・MRI・生理検査）
+  const [testOpen, setTestOpen] = useState<OrderKind | null>(null)
   const winRef = useRef({ rx: false, test: false })
-  winRef.current = { rx: rxOpen, test: testOpen }
+  winRef.current = { rx: rxOpen, test: testOpen !== null }
   // ✗で閉じた患者タブ（もう一度開けば戻る）
   const [closedTabs, setClosedTabs] = useState<Set<string>>(new Set())
   // ドラッグで並べ替えたタブの順（患者ID）
@@ -62,7 +63,7 @@ export default function App() {
   const patient = state.patients.find((p) => p.id === state.currentId) ?? null
   const draft = (patient && state.drafts[patient.id]) || emptyDraft()
   const mk = state.mode.kind
-  const railActive: RailId | null = mk === 'letter' ? 'letter' : mk === 'images' ? 'image' : testOpen ? 'test' : mk === 'diseases' ? 'disease' : null
+  const railActive: RailId | null = mk === 'letter' ? 'letter' : mk === 'images' ? 'image' : testOpen ? testOpen : rxOpen ? 'rx' : mk === 'diseases' ? 'disease' : null
 
   useEffect(() => setSaveOk(saveState(state)), [state])
   useEffect(() => {
@@ -85,11 +86,18 @@ export default function App() {
     const s = stateRef.current
     const p = s.patients.find((x) => x.id === s.currentId)
     if (!p) return
+    // 用法を選んでいない薬があれば確定しない（処方ウインドウでその行を開く）
+    const blank = s.drafts[p.id]?.rx.find(isBlank)
+    if (blank) {
+      setToast(`${blank.name} の用法が未入力です`)
+      openRx()
+      return
+    }
     const secs = s.session ? Math.round((Date.now() - s.session.startedAt) / 1000) : 0
     const ops = s.session?.ops ?? 0
     const next = m === 'next' ? s.patients.find((x) => x.status === '待ち' && x.id !== p.id) : undefined
     setRxOpen(false)
-    setTestOpen(false)
+    setTestOpen(null)
     dispatch({ type: 'confirm', then: m === 'next' ? 'next' : 'list' })
     if (m !== 'next') setView(m)
     setToast(`${p.name} を確定（${secs}秒・${ops}操作）${m === 'next' ? (next ? ` → 次：${next.name}` : ' → 待ち患者なし') : ''}`)
@@ -118,18 +126,19 @@ export default function App() {
     setRxOpen(true)
   }
 
-  // 検査ウインドウ（右端の検査アイコン・オーダー欄の「検査」・⌘E）
-  const openTests = () => {
+  // オーダーのウインドウ（右端のオーダーの列・オーダー欄の「検査」・⌘E は血液検査）
+  const openTests = (kind: OrderKind = 'blood') => {
     if (!stateRef.current.currentId) return
     dispatch({ type: 'mode', mode: { kind: 'chart' } })
-    setTestOpen(true)
+    setRxOpen(false)
+    setTestOpen(kind)
   }
 
   const selectRail = (id: RailId) => {
     const s = stateRef.current
     setPhonePane('now')
     if (id === 'letter') return toggleLetter()
-    if (id === 'test') return openTests()
+    if (id in ORDER_KINDS) return openTests(id as OrderKind)
     if (id === 'image')
       return dispatch({
         type: 'mode',
@@ -162,7 +171,7 @@ export default function App() {
         setHelp(false)
         if (closingRef.current) return hit(() => setClosing(null))
         if (winRef.current.rx) return hit(() => setRxOpen(false))
-        if (winRef.current.test) return hit(() => setTestOpen(false))
+        if (winRef.current.test) return hit(() => setTestOpen(null))
         if (s.mode.kind !== 'chart' && s.mode.kind !== 'letter') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
         return
       }
@@ -174,7 +183,7 @@ export default function App() {
       if (mod && k === 'd') return hit(() => dispatch({ type: 'do' }))
       if (mod && k === 'l') return hit(toggleLetter)
       if (mod && k === 'p') return hit(openRx)
-      if (mod && k === 'e') return hit(openTests)
+      if (mod && k === 'e') return hit(() => openTests())
       if (mod && e.key === 'Enter') return hit(() => confirm())
     }
     const onClick = () => {
@@ -247,11 +256,16 @@ export default function App() {
         label: d.name,
         sub: `${doseText(d)} ${usageLine(d)} ${daysText(d) || (d.site ?? '')}`,
         keys: `${d.kana} ${d.alias}`,
-        run: run({ type: 'addRx', drugId: d.id }),
+        // 用法はその行で選ぶので、入れたら処方ウインドウを開く
+        run: () => {
+          run({ type: 'addRx', drugId: d.id })()
+          openRx()
+        },
       })),
       ...TESTS.map((t) => ({
         id: t.code,
         group: '検査' as const,
+        sub: ORDER_KINDS[kindOfTest(t.code)].label,
         label: t.name,
         keys: `${t.kana} ${t.alias}`,
         run: run({ type: 'addTest', code: t.code }),
@@ -297,7 +311,7 @@ export default function App() {
 
   return (
     <div className="flex h-full bg-cream">
-      <NavRail view={patient ? null : view} slim={!!patient} patients={state.patients} onSelect={selectView} />
+      <NavRail view={patient ? null : view} patients={state.patients} onSelect={selectView} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* ファストカルテと同じく、パソコンでは上の帯を出さない（ロゴは左の縦メニュー）。スマホだけ出す */}
         <header className="no-print flex h-12 shrink-0 items-center gap-2 border-b border-line bg-ivory pr-2 pl-3 md:hidden">
@@ -510,7 +524,7 @@ export default function App() {
           }}
         />
       )}
-      {testOpen && patient && <TestWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setTestOpen(false)} />}
+      {testOpen && patient && <TestWindow key={testOpen} kind={testOpen} patient={patient} draft={draft} dispatch={dispatch} onClose={() => setTestOpen(null)} />}
       {rxOpen && patient && <RxWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setRxOpen(false)} />}
       {metricsOpen && <MetricsPanel state={state} dispatch={dispatch} onClose={() => setMetricsOpen(false)} />}
       {help && <ShortcutsHelp saveLabel={SAVE_MODES.find((m) => m.id === saveMode)!.label} onClose={() => setHelp(false)} />}

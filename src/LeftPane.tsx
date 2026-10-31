@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { ORDER_KINDS, kindOfTest, type OrderKind } from './data'
 import { rxLine } from './rxFormat'
 import type { DoPart } from './store'
 import type { Encounter, Patient, Vitals } from './types'
@@ -172,10 +173,17 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                     )}
                     {showTests && (
                       <div {...drag(['tests'])} onDoubleClick={() => onEdit(e.id, 'orders')} title="ダブルクリックで訂正・右へドラッグで検査をDo" className="cursor-grab rounded hover:bg-cream active:cursor-grabbing">
-                        <div className="flex items-baseline gap-2 border-b border-line py-1.5 text-sm last:border-b-0">
-                          <span className="w-8 shrink-0 rounded bg-lab-ctr text-center text-[11px] text-lab">検査</span>
-                          <span className="min-w-0 flex-1">{e.tests.map((t) => t.name).join('、')}</span>
-                        </div>
+                        {(Object.keys(ORDER_KINDS) as OrderKind[]).map((k) => {
+                          const ts = e.tests.filter((t) => kindOfTest(t.code) === k)
+                          return (
+                            ts.length > 0 && (
+                              <div key={k} className="flex items-baseline gap-2 border-b border-line py-1.5 text-sm last:border-b-0">
+                                <span className={`w-8 shrink-0 rounded text-center text-[11px] ${ORDER_KINDS[k].tone}`}>{ORDER_KINDS[k].short}</span>
+                                <span className="min-w-0 flex-1">{ts.map((t) => t.name).join('、')}</span>
+                              </div>
+                            )
+                          )
+                        })}
                       </div>
                     )}
                     {showDocs &&
