@@ -42,7 +42,7 @@ type Props = {
 }
 
 const WD = ['日', '月', '火', '水', '木', '金', '土']
-const dayLabel = (d: string) => {
+export const dayLabel = (d: string) => {
   const t = new Date(`${d}T00:00:00`)
   return `${d.replace(/-/g, '/')}（${WD[t.getDay()]}）`
 }
@@ -76,14 +76,13 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                 >
                   <span className={`inline-block transition-transform ${open ? 'rotate-90' : ''}`}>›</span>
                   <span className="font-num">{m.ym.replace('-', '/')}</span>
-                  <span className="text-[10px]">{m.days.length}</span>
                 </button>
                 {open && (
                   <div className="mt-1 ml-1.5 flex flex-col gap-1 border-l border-line pl-1">
                     {m.days.map((d) => (
                       <button key={d} onClick={() => jump(d)} className="rounded-md border border-line bg-ivory px-1.5 py-1 text-center text-xs leading-tight text-clinical hover:bg-gold-soft">
-                        <span className="font-num block">{d.slice(8)}</span>
-                        <span className="block text-[11px] text-mist">{WD[new Date(`${d}T00:00:00`).getDay()]}</span>
+                        <span className="font-num block">{Number(d.slice(8))}日</span>
+                        <span className="block text-[11px] text-mist">（{WD[new Date(`${d}T00:00:00`).getDay()]}）</span>
                       </button>
                     ))}
                   </div>

@@ -248,9 +248,11 @@ export const ymd = (d: Date) =>
 
 export const today = () => ymd(new Date())
 
+// 架空の受診日（今日から n 日前）。日曜に当たったら前の土曜にずらす（診療所は日曜休み）
 const daysAgo = (n: number) => {
   const d = new Date()
   d.setDate(d.getDate() - n)
+  while (d.getDay() === 0) d.setDate(d.getDate() - 1)
   return ymd(d)
 }
 
@@ -294,18 +296,18 @@ export const initialPatients = (): Patient[] => [
     status: '待ち',
     diseases: [dis('高血圧症', '2019-05-10', true), dis('2型糖尿病', '2021-02-03'), dis('脂質異常症', '2021-02-03')],
     encounters: [
-      enc(84, {
+      enc(87, {
         vitals: { sbp: 142, dbp: 86, hr: 74, bw: 71.2 },
         text: '血圧やや高め。家庭血圧 135/85前後。減塩を継続指導。\nHbA1c 7.2%。食事療法の振り返り。',
         rx: [rxFromDrug('d01'), rxFromDrug('d03'), rxFromDrug('d05')],
         tests: [testFromCode('t02'), testFromCode('t03')],
       }),
-      enc(56, {
+      enc(59, {
         vitals: { sbp: 136, dbp: 82, hr: 70, bw: 70.5 },
         text: '家庭血圧 130/80台に改善。体重 -0.7kg。\n自覚症状なし。Do処方。',
         rx: [rxFromDrug('d01'), rxFromDrug('d03'), rxFromDrug('d05')],
       }),
-      enc(28, {
+      enc(31, {
         vitals: { sbp: 134, dbp: 80, hr: 72, bw: 70.1 },
         text: '著変なし。足のしびれなし。眼科受診は来月予定とのこと。\nDo処方。',
         rx: [rxFromDrug('d01'), rxFromDrug('d03'), rxFromDrug('d05')],
@@ -325,7 +327,7 @@ export const initialPatients = (): Patient[] => [
     // 自動転帰の確認用：前回の急性疾患と、検査後に放置された疑い病名
     diseases: [dis('逆流性食道炎', '2025-11-20', true), dis('急性胃炎', '2026-08-25'), { ...dis('貧血', '2026-08-25'), suspected: true }],
     encounters: [
-      enc(42, {
+      enc(45, {
         vitals: { sbp: 118, dbp: 72, hr: 68 },
         text: '胸やけは週1回程度に減少。夜間の症状なし。',
         rx: [rxFromDrug('d07')],
@@ -357,7 +359,7 @@ export const initialPatients = (): Patient[] => [
     status: '待ち',
     diseases: [dis('高血圧症', '2022-08-01', true), dis('気管支喘息', '2015-04-01')],
     encounters: [
-      enc(30, {
+      enc(33, {
         vitals: { sbp: 128, dbp: 78, hr: 76, spo2: 98 },
         text: '喘息発作なし。吸入手技良好。血圧安定。',
         rx: [rxFromDrug('d02'), rxFromDrug('d12')],
@@ -376,13 +378,13 @@ export const initialPatients = (): Patient[] => [
     status: '待ち',
     diseases: [dis('2型糖尿病', '2012-03-14', true), dis('高尿酸血症', '2018-07-09'), dis('便秘症', '2023-01-20')],
     encounters: [
-      enc(91, {
+      enc(96, {
         vitals: { sbp: 138, dbp: 76, bw: 62.0 },
         text: 'HbA1c 7.8%。間食が増えていた。食事内容を確認。',
         rx: [rxFromDrug('d03'), rxFromDrug('d04'), rxFromDrug('d15'), rxFromDrug('d14')],
         tests: [testFromCode('t02'), testFromCode('t03'), testFromCode('t05')],
       }),
-      enc(35, {
+      enc(39, {
         vitals: { sbp: 132, dbp: 74, bw: 61.4 },
         text: '間食を減らせている。便通良好。',
         rx: [rxFromDrug('d03'), rxFromDrug('d04'), rxFromDrug('d15'), rxFromDrug('d14')],

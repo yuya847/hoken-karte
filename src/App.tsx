@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { CommandPalette, type Command } from './CommandPalette'
-import { DISEASES, DRUGS, ORDER_KINDS, SETS, TESTS, kindOfTest, type OrderKind } from './data'
-import { LeftPane, type DoDrag } from './LeftPane'
+import { DISEASES, DRUGS, ORDER_KINDS, SETS, TESTS, kindOfTest, today, type OrderKind } from './data'
+import { LeftPane, dayLabel, type DoDrag } from './LeftPane'
 import { LetterEditor } from './LetterEditor'
 import { Icon } from './Icon'
 import { BrandWordmark } from './BrandMark'
@@ -444,7 +444,7 @@ export default function App() {
                   {/* 保存の帯（ファストカルテの EntryPanel と同じ：左に「記載」、右に確定のボタン） */}
                   <div className="no-print flex shrink-0 items-center gap-2 border-b border-line px-3 py-1.5">
                     <span className="text-sm font-semibold">記載</span>
-                    <span className="font-num text-[11px] whitespace-nowrap text-mist max-xl:hidden">{new Date().toLocaleDateString('ja-JP')}</span>
+                    <span className="font-num text-[11px] whitespace-nowrap text-mist max-xl:hidden">{dayLabel(today())}</span>
                     <span className="flex-1" />
                     <SaveSplitButton mode={saveMode} onMode={setSaveMode} onSave={(m) => confirm(m)} />
                   </div>
