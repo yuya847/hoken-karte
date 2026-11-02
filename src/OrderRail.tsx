@@ -3,7 +3,7 @@ import { ORDER_KINDS, type OrderKind } from './data'
 
 // 右端のオーダーの列。Material Design 3 のナビゲーションレールの形（幅80px・上に検索のFAB・
 // 押している項目はアイコンの後ろに横長の丸い面）。オーダーは種類ごとに分ける
-export type RailId = 'rx' | OrderKind | 'disease' | 'letter' | 'image'
+export type RailId = 'rx' | OrderKind | 'disease' | 'docs' | 'labs' | 'image'
 
 type Item = { id: RailId; label: string; icon: string; hint?: string }
 
@@ -13,7 +13,8 @@ const ORDER_ITEMS: Item[] = [
 ]
 const ACTION_ITEMS: Item[] = [
   { id: 'disease', label: '病名', icon: 'sell' },
-  { id: 'letter', label: '紹介状', icon: 'mail', hint: '⌘L' },
+  { id: 'docs', label: '文書', icon: 'description' },
+  { id: 'labs', label: '検査結果', icon: 'lab_profile' },
   { id: 'image', label: '画像', icon: 'photo_library' },
 ]
 export const RAIL = [...ORDER_ITEMS, ...ACTION_ITEMS]

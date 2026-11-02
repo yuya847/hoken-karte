@@ -4,15 +4,20 @@ import { Icon } from './Icon'
 import { BrandIcon } from './BrandMark'
 import { saveIntegrations, useIntegrations, type Integrations as Cfg } from './integrations'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
+import { AccountingPage } from './Accounting'
+import { ResultsPage } from './Labs'
+import { NewPatientButton, QualBadge } from './Qualification'
+import { SchedulePage } from './Schedule'
 import type { Action } from './store'
 import type { Patient, QueueStatus } from './types'
 
-export type View = 'schedule' | 'reception' | 'patients' | 'accounting' | 'settings'
+export type View = 'schedule' | 'reception' | 'patients' | 'results' | 'accounting' | 'settings'
 
 export const NAV: { id: View; label: string; icon: string }[] = [
-  { id: 'schedule', label: '予定', icon: 'calendar_month' },
+  { id: 'schedule', label: '予約', icon: 'calendar_month' },
   { id: 'reception', label: '受付', icon: 'how_to_reg' },
   { id: 'patients', label: '患者', icon: 'groups' },
+  { id: 'results', label: '検査結果', icon: 'lab_profile' },
   { id: 'accounting', label: '会計', icon: 'payments' },
   { id: 'settings', label: '設定', icon: 'settings' },
 ]
@@ -37,6 +42,7 @@ export function NavRail({ view, patients, onSelect }: { view: View | null; patie
   const badge: Partial<Record<View, number>> = {
     reception: patients.filter((p) => p.status === '待ち').length,
     accounting: patients.filter((p) => p.status === '会計待ち').length,
+    results: patients.reduce((n, p) => n + (p.labs?.filter((r) => !r.reviewed).length ?? 0), 0),
   }
   return (
     <aside aria-label="メニュー" className="no-print flex w-20 shrink-0 flex-col items-center gap-1 border-r border-line bg-ivory pt-3 pb-3 max-md:hidden">
@@ -97,12 +103,6 @@ const todaySummary = (p: Patient) => {
   const last = p.encounters.at(-1)
   const done = p.status === '会計待ち' || p.status === '済'
   return done && last ? `${last.kind}・処方${last.rx.length}剤・検査${last.tests.length}件${last.letters.length ? '・紹介状' : ''}` : '—'
-}
-
-// 予定は試作用の架空の時刻（9:00から15分おき）。予約機能はPhase 6
-const slotOf = (i: number) => {
-  const m = 9 * 60 + i * 15
-  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`
 }
 
 type SortKey = 'kana' | 'age' | 'last'
@@ -180,11 +180,6 @@ function PatientTable({ patients, cols, onOpen, empty, sort, tint }: { patients:
       </table>
     </div>
   )
-}
-
-const stop = (fn: () => void) => (e: React.MouseEvent) => {
-  e.stopPropagation()
-  fn()
 }
 
 const STATUSES: QueueStatus[] = ['待ち', '診察中', '会計待ち', '済']
@@ -295,24 +290,31 @@ export function Desk({ view, patients, dispatch, onMetrics }: DeskProps) {
   }, [q, patients, sortKey, dir])
   const byStatus = (order: QueueStatus[]) => (a: Patient, b: Patient) => order.indexOf(a.status) - order.indexOf(b.status)
 
-  if (view === 'schedule')
-    return (
-      <Page title="今日の予定" note="予約の時刻は試作用の架空のものです。予約・Web問診はPhase 6で実装します。">
-        <PatientTable
-          patients={patients}
-          onOpen={open}
-          empty="予定はありません"
-          cols={[{ head: '時刻', cell: (_p, i) => <span className="font-medium tabular-nums">{slotOf(i)}</span>, className: 'w-20' }, C.name, C.age, status, C.open]}
-        />
-      </Page>
-    )
+  if (view === 'schedule') return <SchedulePage patients={patients} dispatch={dispatch} onOpen={open} />
+  if (view === 'results') return <ResultsPage patients={patients} dispatch={dispatch} onOpen={open} />
 
   if (view === 'reception') {
     // 診察中を上に。状態は行の札から直接変えられる
     const list = patients.filter((p) => p.status === '待ち' || p.status === '診察中').sort(byStatus(['診察中', '待ち']))
     return (
-      <Page title="受付患者一覧" note="行のどこを押してもカルテが開きます。↑↓（J/K）で行を選び Enter で開けます。状態の札を押すと状態を変えられます。" action={<StatusCounts patients={patients} />}>
-        <PatientTable tint patients={list} onOpen={open} empty="待っている患者はいません" cols={[status, C.name, C.age, C.insurance, C.open]} />
+      <Page
+        title="受付患者一覧"
+        note="行のどこを押してもカルテが開きます。↑↓（J/K）で行を選び Enter で開けます。状態の札を押すと状態を変えられます。"
+        action={
+          <>
+            <StatusCounts patients={patients} />
+            <span className="flex-1" />
+            <NewPatientButton patients={patients} dispatch={dispatch} />
+          </>
+        }
+      >
+        <PatientTable
+          tint
+          patients={list}
+          onOpen={open}
+          empty="待っている患者はいません"
+          cols={[status, C.name, C.age, C.insurance, { head: '資格確認', cell: (p) => <QualBadge patient={p} dispatch={dispatch} compact /> }, C.open]}
+        />
       </Page>
     )
   }
@@ -337,36 +339,7 @@ export function Desk({ view, patients, dispatch, onMetrics }: DeskProps) {
       </Page>
     )
 
-  if (view === 'accounting') {
-    const list = patients.filter((p) => p.status === '会計待ち' || p.status === '済').sort(byStatus(['会計待ち', '済']))
-    return (
-      <Page title="会計" note="点数・窓口負担の計算は算定エンジン（Phase 3）で実装します。行を押すとカルテを確認できます。">
-        <PatientTable
-          patients={list}
-          onOpen={open}
-          empty="会計待ちの患者はいません"
-          cols={[
-            status,
-            C.name,
-            C.today,
-            {
-              head: '',
-              className: 'text-right',
-              cell: (p) =>
-                p.status === '会計待ち' ? (
-                  <button onClick={stop(() => dispatch({ type: 'paid', patientId: p.id }))} className="btn btn-sm btn-tonal">
-                    <Icon name="payments" size={18} />
-                    会計済にする
-                  </button>
-                ) : (
-                  <Icon name="chevron_right" className="text-ink-2" />
-                ),
-            },
-          ]}
-        />
-      </Page>
-    )
-  }
+  if (view === 'accounting') return <AccountingPage patients={patients} dispatch={dispatch} onOpen={open} />
 
   return (
     <Page title="設定">

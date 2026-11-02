@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { ORDER_KINDS, kindOfTest, type OrderKind } from './data'
+import { PrescriptionButton } from './Prescription'
 import { rxLine } from './rxFormat'
 import type { DoPart } from './store'
 import type { Encounter, Patient, Vitals } from './types'
@@ -159,7 +160,11 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                 )}
                 {(showRx || showTests || showDocs) && (
                   <div className="rounded-md border border-line bg-ivory p-3">
-                    <div className="mb-1 text-xs text-mist">オーダー</div>
+                    <div className="mb-1 flex items-center text-xs text-mist">
+                      オーダー
+                      <span className="flex-1" />
+                      {e.rx.length > 0 && <PrescriptionButton patient={patient} encounter={e} compact />}
+                    </div>
                     {showRx && (
                       <div {...drag(['rx'])} onDoubleClick={() => onEdit(e.id, 'orders')} title="ダブルクリックで訂正・右へドラッグで処方をDo" className="cursor-grab rounded hover:bg-cream active:cursor-grabbing">
                         {e.rx.map((r) => (

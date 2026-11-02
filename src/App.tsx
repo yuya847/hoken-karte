@@ -12,6 +12,10 @@ import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
 import { OrderBar, OrderRail, type RailId } from './OrderRail'
 import { ChartEditor, PastEditor } from './RightPane'
 import { DiseasePanel } from './DiseasePanel'
+import { DocWindow, DocsPanel } from './DocsPanel'
+import { LabsPanel } from './Labs'
+import { NextVisit } from './Schedule'
+import { QualBadge } from './Qualification'
 import { RxWindow } from './RxWindow'
 import { SaveSplitButton, loadSaveMode, SAVE_MODES, type SaveMode } from './SaveSplitButton'
 import { Desk, MobileTabBar, NAV, NavRail, type View } from './Desk'
@@ -22,6 +26,9 @@ const GOAL_SECONDS = 60
 const GOAL_OPS = 15
 
 const fmtSec = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+
+// 右端の列のうち、右の枠を切り替える項目
+const RIGHT = { disease: 'diseases', docs: 'docs', labs: 'labs', image: 'images' } as const
 
 const dropLabel = (parts: DoDrag['parts']) =>
   parts.length === 3 ? '記載・処方・検査' : parts.map((p) => ({ text: '記載', rx: '処方', tests: '検査' })[p]).join('・')
@@ -52,6 +59,8 @@ export default function App() {
   const [saveOk, setSaveOk] = useState(true)
   const [toast, setToast] = useState<string | null>(null)
   const [help, setHelp] = useState(false)
+  // 開いている文書（療養計画書・主治医意見書など）のウインドウ
+  const [docOpen, setDocOpen] = useState<string | null>(null)
   // 確定のあとの行き先（主ボタン）。最後に選んだものを覚える
   const [saveMode, setSaveMode] = useState<SaveMode>(loadSaveMode)
   const saveModeRef = useRef(saveMode)
@@ -63,7 +72,8 @@ export default function App() {
   const patient = state.patients.find((p) => p.id === state.currentId) ?? null
   const draft = (patient && state.drafts[patient.id]) || emptyDraft()
   const mk = state.mode.kind
-  const railActive: RailId | null = mk === 'letter' ? 'letter' : mk === 'images' ? 'image' : testOpen ? testOpen : rxOpen ? 'rx' : mk === 'diseases' ? 'disease' : null
+  const railActive: RailId | null =
+    mk === 'letter' || mk === 'docs' ? 'docs' : mk === 'labs' ? 'labs' : mk === 'images' ? 'image' : testOpen ? testOpen : rxOpen ? 'rx' : mk === 'diseases' ? 'disease' : null
 
   useEffect(() => setSaveOk(saveState(state)), [state])
   useEffect(() => {
@@ -137,19 +147,13 @@ export default function App() {
   const selectRail = (id: RailId) => {
     const s = stateRef.current
     setPhonePane('now')
-    if (id === 'letter') return toggleLetter()
+    if (id === 'rx') return openRx()
     if (id in ORDER_KINDS) return openTests(id as OrderKind)
-    if (id === 'image')
-      return dispatch({
-        type: 'mode',
-        mode: s.mode.kind === 'images' ? { kind: 'chart' } : { kind: 'images' },
-      })
-    if (id === 'disease')
-      return dispatch({
-        type: 'mode',
-        mode: s.mode.kind === 'diseases' ? { kind: 'chart' } : { kind: 'diseases' },
-      })
-    openRx()
+    if (!(id in RIGHT)) return
+    // 病名・文書・検査結果・画像は右の枠を切り替える（もう一度押すと記載に戻る）
+    const kind = RIGHT[id as keyof typeof RIGHT]
+    const on = s.mode.kind === kind || (kind === 'docs' && s.mode.kind === 'letter')
+    dispatch({ type: 'mode', mode: on ? { kind: 'chart' } : { kind } })
   }
 
   // ショートカットとクリックを「操作数」として数える（文字入力は数えない）
@@ -172,7 +176,7 @@ export default function App() {
         if (closingRef.current) return hit(() => setClosing(null))
         if (winRef.current.rx) return hit(() => setRxOpen(false))
         if (winRef.current.test) return hit(() => setTestOpen(null))
-        if (s.mode.kind !== 'chart' && s.mode.kind !== 'letter') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
+        if (s.mode.kind !== 'chart' && s.mode.kind !== 'letter' && s.mode.kind !== 'docs') hit(() => dispatch({ type: 'mode', mode: { kind: 'chart' } }))
         return
       }
       if (mod && k === 'k') return hit(() => setPalette((v) => !v))
@@ -380,6 +384,7 @@ export default function App() {
                   {patient.insurance} {Math.round(patient.burden * 10)}割
                 </span>
                 <span className="pill max-md:hidden">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
+                <QualBadge patient={patient} dispatch={dispatch} />
                 <span className="flex-1" />
                 <span className={`hidden items-center gap-1 text-[11px] lg:flex ${saveOk ? 'text-mist' : 'font-medium text-error'}`}>
                   <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={15} />
@@ -446,6 +451,7 @@ export default function App() {
                     <span className="text-sm font-semibold">記載</span>
                     <span className="font-num text-[11px] whitespace-nowrap text-mist max-xl:hidden">{dayLabel(today())}</span>
                     <span className="flex-1" />
+                    <NextVisit patient={patient} draft={draft} dispatch={dispatch} />
                     <SaveSplitButton mode={saveMode} onMode={setSaveMode} onSave={(m) => confirm(m)} />
                   </div>
                   {editing && (
@@ -493,6 +499,10 @@ export default function App() {
                         <PacsPanel patient={patient} draft={draft} onClose={() => dispatch({ type: 'mode', mode: { kind: 'chart' } })} />
                       ) : mode.kind === 'diseases' ? (
                         <DiseasePanel patient={patient} draft={draft} dispatch={dispatch} />
+                      ) : mode.kind === 'docs' ? (
+                        <DocsPanel patient={patient} dispatch={dispatch} onOpen={setDocOpen} onLetter={toggleLetter} />
+                      ) : mode.kind === 'labs' ? (
+                        <LabsPanel patient={patient} dispatch={dispatch} />
                       ) : editing ? (
                         <PastEditor key={editing.id} encounter={editing} focus={mode.kind === 'edit-past' ? mode.focus : undefined} dispatch={dispatch} />
                       ) : (
@@ -525,6 +535,7 @@ export default function App() {
         />
       )}
       {testOpen && patient && <TestWindow key={testOpen} kind={testOpen} patient={patient} draft={draft} dispatch={dispatch} onClose={() => setTestOpen(null)} />}
+      {docOpen && patient && <DocWindow patient={patient} docId={docOpen} dispatch={dispatch} onClose={() => setDocOpen(null)} />}
       {rxOpen && patient && <RxWindow patient={patient} draft={draft} dispatch={dispatch} onClose={() => setRxOpen(false)} />}
       {metricsOpen && <MetricsPanel state={state} dispatch={dispatch} onClose={() => setMetricsOpen(false)} />}
       {help && <ShortcutsHelp saveLabel={SAVE_MODES.find((m) => m.id === saveMode)!.label} onClose={() => setHelp(false)} />}
