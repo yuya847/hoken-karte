@@ -118,8 +118,14 @@ h1, h2, h3 { text-wrap: balance; }
 .rail-wiggle { animation: rail-wiggle 0.28s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .rail-wiggle { animation: none; } }
 
+/* 文書の紙（print.tsx）。画面では隠し、印刷のときはこの紙だけを出す */
+.print-sheet { display: none; }
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { background: white; }
+  body:has(.print-sheet) > #root { display: none !important; }
+  body:has(.print-sheet) .print-sheet { display: block; color: black; }
+  .print-sheet .paper { break-after: page; }
+  @page { size: A4; margin: 0; }
 }

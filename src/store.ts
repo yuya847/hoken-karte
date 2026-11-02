@@ -1,7 +1,7 @@
 import { DISEASES, SETS, initialPatients, rxFromDrug, testFromCode, today, uid } from './data'
 import { applyPlan, planDiseases } from './orders'
 import { parseVitals } from './vitals'
-import type { Disease, Draft, Encounter, Patient, QueueStatus, RightMode, RxItem, SessionMetric, TestOrder, Vitals } from './types'
+import type { Appointment, Disease, Draft, Encounter, KarteDoc, LabReport, Patient, Payment, Qualification, QueueStatus, RightMode, RxItem, SessionMetric, TestOrder, Vitals } from './types'
 
 export type DoPart = 'text' | 'rx' | 'tests'
 
@@ -36,14 +36,23 @@ export type Action =
   | { type: 'mode'; mode: RightMode }
   | { type: 'savePast'; encounterId: string; text: string; vitals: Vitals; rx: RxItem[]; tests: TestOrder[] }
   | { type: 'confirm'; then?: 'next' | 'list' } // 確定のあと：next＝次の待ち患者を開く、list＝一覧に戻る
-  | { type: 'paid'; patientId: string }
+  | { type: 'paid'; patientId: string; payment?: Payment }
+  // クリニックの実務（文書・検査結果・予約・資格確認・新患）。カルテの確定とは別にすぐ保存する
+  | { type: 'saveDoc'; patientId: string; doc: KarteDoc }
+  | { type: 'removeDoc'; patientId: string; id: string }
+  | { type: 'addLabs'; items: { patientId: string; report: LabReport }[] }
+  | { type: 'reviewLab'; patientId: string; reportId: string; comment?: string }
+  | { type: 'saveAppointment'; patientId: string; appt: Appointment }
+  | { type: 'removeAppointment'; patientId: string; id: string }
+  | { type: 'qualify'; patientId: string; q: Qualification; patch?: Partial<Patient> }
+  | { type: 'addPatient'; patient: Patient }
   | { type: 'status'; patientId: string; status: QueueStatus }
   | { type: 'clearMetrics' }
   | { type: 'close' }
   | { type: 'discardDraft'; patientId: string }
   | { type: 'reset' }
 
-const KEY = 'hoken-karte-proto-v2'
+const KEY = 'hoken-karte-proto-v3'
 
 export const emptyDraft = (): Draft => ({ vitals: {}, text: '', rx: [], tests: [], letter: null, savedAt: null })
 
@@ -83,6 +92,12 @@ const latestWith = (p: Patient, pred: (e: Encounter) => boolean) =>
 
 const mapPatient = (s: State, fn: (p: Patient) => Patient): State =>
   s.currentId ? { ...s, patients: s.patients.map((p) => (p.id === s.currentId ? fn(p) : p)) } : s
+
+const mapById = (s: State, id: string, fn: (p: Patient) => Patient): State => ({ ...s, patients: s.patients.map((p) => (p.id === id ? fn(p) : p)) })
+
+// 同じ id があれば置き換え、なければ足す
+const upsert = <T extends { id: string }>(list: T[] | undefined, item: T) =>
+  list?.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...(list ?? []), item]
 
 const mapDraft = (s: State, fn: (d: Draft) => Draft): State => {
   if (!s.currentId) return s
@@ -253,7 +268,23 @@ export function reducer(s: State, a: Action): State {
       return next ? openPatient(done, next.id) : done
     }
     case 'paid':
-      return { ...s, patients: s.patients.map((p) => (p.id === a.patientId ? { ...p, status: '済' } : p)) }
+      return mapById(s, a.patientId, (p) => ({ ...p, status: '済', payments: a.payment ? [...(p.payments ?? []), a.payment] : p.payments }))
+    case 'saveDoc':
+      return mapById(s, a.patientId, (p) => ({ ...p, docs: upsert(p.docs, a.doc) }))
+    case 'removeDoc':
+      return mapById(s, a.patientId, (p) => ({ ...p, docs: p.docs?.filter((d) => d.id !== a.id) }))
+    case 'addLabs':
+      return { ...s, patients: s.patients.map((p) => ({ ...p, labs: a.items.filter((x) => x.patientId === p.id).reduce((l, x) => upsert(l, x.report), p.labs) })) }
+    case 'reviewLab':
+      return mapById(s, a.patientId, (p) => ({ ...p, labs: p.labs?.map((r) => (r.id === a.reportId ? { ...r, reviewed: true, comment: a.comment ?? r.comment } : r)) }))
+    case 'saveAppointment':
+      return mapById(s, a.patientId, (p) => ({ ...p, appointments: upsert(p.appointments, a.appt) }))
+    case 'removeAppointment':
+      return mapById(s, a.patientId, (p) => ({ ...p, appointments: p.appointments?.filter((x) => x.id !== a.id) }))
+    case 'qualify':
+      return mapById(s, a.patientId, (p) => ({ ...p, ...a.patch, qualification: a.q }))
+    case 'addPatient':
+      return { ...s, patients: [...s.patients, a.patient] }
     case 'status':
       return { ...s, patients: s.patients.map((p) => (p.id === a.patientId ? { ...p, status: a.status } : p)) }
     case 'discardDraft': {

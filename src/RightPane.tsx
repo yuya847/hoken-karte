@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { DRUGS, ORDER_KINDS, SETS, TESTS, kindOfTest } from './data'
+import { DRUGS, ORDER_KINDS, SETS, TESTS, kindOfTest, type OrderKind } from './data'
 import { vitalsLine } from './LeftPane'
 import { Icon } from './Icon'
 import { daysText, doseText, groupRp, isBlank, rxLine, usageLine } from './rxFormat'
@@ -24,7 +24,7 @@ type ChartProps = {
   draft: Draft
   dispatch: (a: Action) => void
   onOpenRx: () => void
-  onOpenTests: () => void
+  onOpenTests: (kind?: OrderKind) => void
 }
 
 function SectionTitle({ icon, label, tone, children }: { icon: string; label: string; tone: string; children?: React.ReactNode }) {
@@ -122,17 +122,29 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
               </div>
             </div>
           ))}
-          {draft.tests.map((t) => (
-            <div key={t.id} className="rounded-md border border-line bg-ivory p-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className={`w-9 shrink-0 rounded py-0.5 text-center text-[11px] ${ORDER_KINDS[kindOfTest(t.code)].tone}`}>{ORDER_KINDS[kindOfTest(t.code)].short}</span>
-                <span className="flex-1 truncate font-medium">{t.name}</span>
-                <button onClick={() => dispatch({ type: 'removeTest', id: t.id })} className="flex h-6 w-6 items-center justify-center rounded text-red-600 hover:bg-red-50" aria-label="削除">
-                  <Icon name="close" size={16} />
+          {/* 検査は種類ごとに1枚。項目は札で並べ、×で1つずつ外す。種類の札を押すとその種類のウインドウ */}
+          {(Object.keys(ORDER_KINDS) as OrderKind[]).map((k) => {
+            const ts = draft.tests.filter((t) => kindOfTest(t.code) === k)
+            if (ts.length === 0) return null
+            return (
+              <div key={k} className="flex items-start gap-2 rounded-md border border-line bg-ivory p-2 text-sm">
+                <button onClick={() => onOpenTests(k)} title={`${ORDER_KINDS[k].label}のウインドウを開く`} className={`mt-0.5 w-9 shrink-0 rounded py-0.5 text-center text-[11px] ${ORDER_KINDS[k].tone}`}>
+                  {ORDER_KINDS[k].short}
                 </button>
+                <div className="flex min-w-0 flex-1 flex-wrap gap-1">
+                  {ts.map((t) => (
+                    <span key={t.id} className="inline-flex h-6 items-center gap-0.5 rounded border border-line bg-white pr-0.5 pl-1.5 text-[12px] font-medium">
+                      {t.name}
+                      <button onClick={() => dispatch({ type: 'removeTest', id: t.id })} className="flex h-5 w-5 items-center justify-center rounded text-mist hover:bg-red-50 hover:text-red-600" aria-label={`${t.name}を外す`}>
+                        <Icon name="close" size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <span className="mt-0.5 shrink-0 text-[11px] text-mist">{ts.length}項目</span>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
       <div className="mt-1.5 flex items-center gap-2 px-0.5 text-[11px] text-mist">

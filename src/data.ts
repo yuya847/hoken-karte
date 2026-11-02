@@ -1,4 +1,6 @@
 // 試作用の架空データ。実在の患者・医療機関とは無関係。
+import { initialLabs } from './labData'
+import { initialAppointments } from './scheduleData'
 import type { Disease, Encounter, Patient, RxItem, TestOrder } from './types'
 
 export type Drug = {
@@ -38,34 +40,58 @@ export const DRUGS: Drug[] = [
   { id: 'd19', name: 'ヘパリン類似物質油性クリーム0.3%', kana: 'へぱりんるいじぶっしつ ひるどいど', alias: 'hirudo', unit: 'g', dose: 50, usage: '1日2回塗布', days: 0, form: 'external', perUse: 1, site: '両下腿' },
 ]
 
-export const TEST_GROUPS = ['点滴', '血液学', '生化学', '免疫・血清', '尿・便', '生理', 'X線', 'CT', 'MRI'] as const
+// 検査の分類。血液検査は「生化学」などの検査室の分け方ではなく、臓器・目的ごとの見出しで1項目ずつ選ぶ
+export const BLOOD_GROUPS = ['血算・凝固', '肝・胆', '腎・電解質', '脂質', '糖', '炎症・心', '甲状腺', '感染症', '腫瘍マーカー', '尿・便'] as const
+export const TEST_GROUPS = ['点滴', ...BLOOD_GROUPS, '生理', 'X線', 'CT', 'MRI'] as const
 export type TestGroup = (typeof TEST_GROUPS)[number]
 
-export const TESTS: { code: string; name: string; kana: string; alias: string; group: TestGroup }[] = [
-  { code: 't01', name: '血算（CBC）', kana: 'けっさん', alias: 'cbc', group: '血液学' },
-  { code: 't09', name: '白血球分画', kana: 'はっけっきゅうぶんかく', alias: 'diff', group: '血液学' },
-  { code: 't02', name: 'HbA1c', kana: 'へもぐろびんえーわんしー', alias: 'a1c', group: '血液学' },
-  { code: 't10', name: 'PT-INR', kana: 'ぷろとろんびんじかん', alias: 'inr', group: '血液学' },
-  { code: 't11', name: 'D-ダイマー', kana: 'でぃーだいまー', alias: 'dd', group: '血液学' },
-  { code: 't03', name: '生化学（肝・腎・脂質）', kana: 'せいかがく', alias: 'seika', group: '生化学' },
-  { code: 't12', name: 'AST・ALT・γ-GTP', kana: 'かんきのう', alias: 'ast alt ggt', group: '生化学' },
-  { code: 't13', name: 'BUN・Cre・eGFR', kana: 'じんきのう', alias: 'bun cre egfr', group: '生化学' },
-  { code: 't14', name: '尿酸', kana: 'にょうさん', alias: 'ua', group: '生化学' },
-  { code: 't15', name: 'Na・K・Cl', kana: 'でんかいしつ', alias: 'na k cl', group: '生化学' },
-  { code: 't16', name: 'TC・TG・HDL・LDL', kana: 'ししつ', alias: 'tc tg hdl ldl', group: '生化学' },
-  { code: 't17', name: '血糖', kana: 'けっとう', alias: 'bs glu', group: '生化学' },
-  { code: 't18', name: 'CK', kana: 'しーけー', alias: 'ck cpk', group: '生化学' },
-  { code: 't04', name: 'CRP', kana: 'しーあーるぴー', alias: 'crp', group: '免疫・血清' },
-  { code: 't19', name: 'BNP', kana: 'びーえぬぴー', alias: 'bnp', group: '免疫・血清' },
-  { code: 't20', name: 'TSH・FT4', kana: 'こうじょうせん', alias: 'tsh ft4', group: '免疫・血清' },
-  { code: 't21', name: 'HBs抗原・HCV抗体', kana: 'かんえん', alias: 'hbs hcv', group: '免疫・血清' },
-  { code: 't22', name: 'PSA', kana: 'ぴーえすえー', alias: 'psa', group: '免疫・血清' },
-  { code: 't08', name: 'インフルエンザ抗原', kana: 'いんふるえんざ', alias: 'flu', group: '免疫・血清' },
-  { code: 't23', name: 'SARS-CoV-2抗原', kana: 'ころな', alias: 'covid', group: '免疫・血清' },
-  { code: 't05', name: '尿一般', kana: 'にょういっぱん', alias: 'nyo', group: '尿・便' },
-  { code: 't24', name: '尿沈渣', kana: 'にょうちんさ', alias: 'chinsa', group: '尿・便' },
-  { code: 't25', name: '尿中アルブミン', kana: 'にょうちゅうあるぶみん', alias: 'ualb', group: '尿・便' },
-  { code: 't26', name: '便潜血（2回法）', kana: 'べんせんけつ', alias: 'fobt', group: '尿・便' },
+// 血液・尿の項目のコードは検査結果（labData.ts の LAB_ITEMS）と同じにして、オーダーと結果を1対1でつなぐ。
+// results は1つのオーダーで返ってくる結果の項目（尿一般→尿蛋白・尿糖）
+export const TESTS: { code: string; name: string; kana: string; alias: string; group: TestGroup; results?: string[] }[] = [
+  { code: 'WBC', name: '白血球数', kana: 'はっけっきゅう', alias: 'wbc', group: '血算・凝固' },
+  { code: 'RBC', name: '赤血球数', kana: 'せっけっきゅう', alias: 'rbc', group: '血算・凝固' },
+  { code: 'Hb', name: 'ヘモグロビン', kana: 'へもぐろびん けっしきそ', alias: 'hb hgb', group: '血算・凝固' },
+  { code: 'Ht', name: 'ヘマトクリット', kana: 'へまとくりっと', alias: 'ht hct', group: '血算・凝固' },
+  { code: 'PLT', name: '血小板数', kana: 'けっしょうばん', alias: 'plt', group: '血算・凝固' },
+  { code: 'DIFF', name: '白血球分画', kana: 'はっけっきゅうぶんかく', alias: 'diff', group: '血算・凝固' },
+  { code: 'PTINR', name: 'PT-INR', kana: 'ぷろとろんびんじかん', alias: 'pt inr', group: '血算・凝固' },
+  { code: 'DDIMER', name: 'D-ダイマー', kana: 'でぃーだいまー', alias: 'dd ddimer', group: '血算・凝固' },
+  { code: 'AST', name: 'AST', kana: 'えーえすてぃー じーおーてぃー', alias: 'ast got', group: '肝・胆' },
+  { code: 'ALT', name: 'ALT', kana: 'えーえるてぃー じーぴーてぃー', alias: 'alt gpt', group: '肝・胆' },
+  { code: 'GGT', name: 'γ-GT', kana: 'がんまじーてぃー', alias: 'ggt ggtp', group: '肝・胆' },
+  { code: 'ALP', name: 'ALP', kana: 'あるかりほすふぁたーぜ', alias: 'alp', group: '肝・胆' },
+  { code: 'LDH', name: 'LD（LDH）', kana: 'えるでぃー', alias: 'ldh ld', group: '肝・胆' },
+  { code: 'TP', name: '総蛋白', kana: 'そうたんぱく', alias: 'tp', group: '肝・胆' },
+  { code: 'ALB', name: 'アルブミン', kana: 'あるぶみん', alias: 'alb', group: '肝・胆' },
+  { code: 'TBIL', name: '総ビリルビン', kana: 'そうびりるびん', alias: 'tbil bil', group: '肝・胆' },
+  { code: 'BUN', name: '尿素窒素', kana: 'にょうそちっそ', alias: 'bun un', group: '腎・電解質' },
+  { code: 'CRE', name: 'クレアチニン', kana: 'くれあちにん', alias: 'cre cr', group: '腎・電解質' },
+  { code: 'EGFR', name: 'eGFR', kana: 'いーじーえふあーる', alias: 'egfr gfr', group: '腎・電解質' },
+  { code: 'UA', name: '尿酸', kana: 'にょうさん', alias: 'ua', group: '腎・電解質' },
+  { code: 'NA', name: 'Na', kana: 'なとりうむ', alias: 'na', group: '腎・電解質' },
+  { code: 'K', name: 'K', kana: 'かりうむ', alias: 'k', group: '腎・電解質' },
+  { code: 'CL', name: 'Cl', kana: 'くろーる', alias: 'cl', group: '腎・電解質' },
+  { code: 'TC', name: '総コレステロール', kana: 'そうこれすてろーる', alias: 'tc tcho', group: '脂質' },
+  { code: 'TG', name: '中性脂肪', kana: 'ちゅうせいしぼう', alias: 'tg', group: '脂質' },
+  { code: 'HDL', name: 'HDLコレステロール', kana: 'えいちでぃーえる', alias: 'hdl', group: '脂質' },
+  { code: 'LDL', name: 'LDLコレステロール', kana: 'えるでぃーえる', alias: 'ldl', group: '脂質' },
+  { code: 'GLU', name: '血糖', kana: 'けっとう', alias: 'bs glu', group: '糖' },
+  { code: 'HBA1C', name: 'HbA1c', kana: 'へもぐろびんえーわんしー', alias: 'a1c hba1c', group: '糖' },
+  { code: 'CRP', name: 'CRP', kana: 'しーあーるぴー', alias: 'crp', group: '炎症・心' },
+  { code: 'CK', name: 'CK', kana: 'しーけー', alias: 'ck cpk', group: '炎症・心' },
+  { code: 'BNP', name: 'BNP', kana: 'びーえぬぴー', alias: 'bnp', group: '炎症・心' },
+  { code: 'TSH', name: 'TSH', kana: 'てぃーえすえいち こうじょうせん', alias: 'tsh', group: '甲状腺' },
+  { code: 'FT4', name: 'FT4', kana: 'えふてぃーふぉー こうじょうせん', alias: 'ft4', group: '甲状腺' },
+  { code: 'HBSAG', name: 'HBs抗原', kana: 'えいちびーえす かんえん', alias: 'hbs', group: '感染症' },
+  { code: 'HCVAB', name: 'HCV抗体', kana: 'えいちしーぶい かんえん', alias: 'hcv', group: '感染症' },
+  { code: 'FLU', name: 'インフルエンザ抗原', kana: 'いんふるえんざ', alias: 'flu', group: '感染症' },
+  { code: 'COVID', name: 'SARS-CoV-2抗原', kana: 'ころな', alias: 'covid', group: '感染症' },
+  { code: 'PSA', name: 'PSA', kana: 'ぴーえすえー', alias: 'psa', group: '腫瘍マーカー' },
+  { code: 'CEA', name: 'CEA', kana: 'しーいーえー', alias: 'cea', group: '腫瘍マーカー' },
+  { code: 'UGEN', name: '尿一般（蛋白・糖・潜血）', kana: 'にょういっぱん', alias: 'nyo urine', group: '尿・便', results: ['UPRO', 'UGLU', 'UOB'] },
+  { code: 'USED', name: '尿沈渣', kana: 'にょうちんさ', alias: 'chinsa', group: '尿・便' },
+  { code: 'UACR', name: '尿中アルブミン', kana: 'にょうちゅうあるぶみん', alias: 'ualb uacr', group: '尿・便' },
+  { code: 'FOBT', name: '便潜血（2回法）', kana: 'べんせんけつ', alias: 'fobt', group: '尿・便' },
   { code: 't06', name: '心電図（12誘導）', kana: 'しんでんず', alias: 'ecg', group: '生理' },
   { code: 't27', name: 'ABI', kana: 'えーびーあい', alias: 'abi', group: '生理' },
   { code: 't28', name: '呼吸機能検査', kana: 'こきゅうきのう', alias: 'spiro', group: '生理' },
@@ -95,7 +121,7 @@ export const TESTS: { code: string; name: string; kana: string; alias: string; g
 export type OrderKind = 'drip' | 'blood' | 'xray' | 'ct' | 'mri' | 'physio'
 export const ORDER_KINDS: Record<OrderKind, { label: string; short: string; groups: TestGroup[]; icon: string; tone: string }> = {
   drip: { label: '点滴', short: '点滴', groups: ['点滴'], icon: 'water_drop', tone: 'bg-[#e3f2fd] text-[#1565c0]' },
-  blood: { label: '血液検査', short: '血液', groups: ['血液学', '生化学', '免疫・血清', '尿・便'], icon: 'bloodtype', tone: 'bg-lab-ctr text-lab' },
+  blood: { label: '血液検査', short: '血液', groups: [...BLOOD_GROUPS], icon: 'bloodtype', tone: 'bg-lab-ctr text-lab' },
   xray: { label: '単純写真', short: 'X線', groups: ['X線'], icon: 'radiology', tone: 'bg-surface-2 text-ink' },
   ct: { label: 'CT', short: 'CT', groups: ['CT'], icon: 'view_in_ar', tone: 'bg-[#e0f7fa] text-[#00696f]' },
   mri: { label: 'MRI', short: 'MRI', groups: ['MRI'], icon: 'neurology', tone: 'bg-[#ede7f6] text-[#4a2c8f]' },
@@ -195,30 +221,50 @@ export const DRUG_INDICATIONS: Record<string, string[]> = {
 }
 
 export const TEST_INDICATIONS: Record<string, string[]> = {
-  t01: ['貧血', '急性上気道炎', '肺炎'],
-  t09: ['肺炎', '急性上気道炎'],
-  t02: ['2型糖尿病'],
-  t10: ['心房細動', '深部静脈血栓症'],
-  t11: ['深部静脈血栓症'],
-  t03: ['脂質異常症', '2型糖尿病', '高血圧症', '肝機能障害', '慢性腎臓病'],
-  t12: ['肝機能障害', '脂肪肝', '脂質異常症'],
-  t13: ['慢性腎臓病', '高血圧症', '2型糖尿病'],
-  t14: ['高尿酸血症'],
-  t15: ['高血圧症', '慢性腎臓病'],
-  t16: ['脂質異常症'],
-  t17: ['2型糖尿病'],
-  t18: ['脂質異常症'],
-  t04: ['急性上気道炎', '肺炎', '急性気管支炎'],
-  t19: ['心不全'],
-  t20: ['甲状腺機能低下症'],
-  t21: ['肝機能障害'],
-  t22: ['前立腺癌'],
-  t08: ['インフルエンザ'],
-  t23: ['COVID-19'],
-  t05: ['2型糖尿病', '慢性腎臓病', '高血圧症'],
-  t24: ['慢性腎臓病'],
-  t25: ['2型糖尿病', '慢性腎臓病'],
-  t26: ['大腸癌'],
+  WBC: ['急性上気道炎', '肺炎'],
+  RBC: ['貧血'],
+  Hb: ['貧血'],
+  Ht: ['貧血'],
+  PLT: ['貧血', '肝機能障害'],
+  DIFF: ['肺炎', '急性上気道炎'],
+  PTINR: ['心房細動', '深部静脈血栓症'],
+  DDIMER: ['深部静脈血栓症'],
+  AST: ['肝機能障害', '脂肪肝', '脂質異常症'],
+  ALT: ['肝機能障害', '脂肪肝', '脂質異常症'],
+  GGT: ['肝機能障害', '脂肪肝', '脂質異常症', '2型糖尿病'],
+  ALP: ['肝機能障害'],
+  LDH: ['肝機能障害'],
+  TP: ['肝機能障害'],
+  ALB: ['肝機能障害', '慢性腎臓病'],
+  TBIL: ['肝機能障害'],
+  BUN: ['慢性腎臓病', '高血圧症'],
+  CRE: ['慢性腎臓病', '高血圧症', '2型糖尿病'],
+  EGFR: ['慢性腎臓病', '高血圧症', '2型糖尿病'],
+  UA: ['高尿酸血症'],
+  NA: ['高血圧症', '慢性腎臓病'],
+  K: ['高血圧症', '慢性腎臓病'],
+  CL: ['高血圧症', '慢性腎臓病'],
+  TC: ['脂質異常症'],
+  TG: ['脂質異常症'],
+  HDL: ['脂質異常症'],
+  LDL: ['脂質異常症'],
+  GLU: ['2型糖尿病'],
+  HBA1C: ['2型糖尿病'],
+  CRP: ['急性上気道炎', '肺炎', '急性気管支炎'],
+  CK: ['脂質異常症'],
+  BNP: ['心不全'],
+  TSH: ['甲状腺機能低下症'],
+  FT4: ['甲状腺機能低下症'],
+  HBSAG: ['肝機能障害'],
+  HCVAB: ['肝機能障害'],
+  FLU: ['インフルエンザ'],
+  COVID: ['COVID-19'],
+  PSA: ['前立腺癌'],
+  CEA: ['大腸癌'],
+  UGEN: ['2型糖尿病', '慢性腎臓病', '高血圧症'],
+  USED: ['慢性腎臓病'],
+  UACR: ['2型糖尿病', '慢性腎臓病'],
+  FOBT: ['大腸癌'],
   t06: ['高血圧症', '不整脈', '心房細動'],
   t27: ['末梢動脈疾患'],
   t28: ['気管支喘息', '慢性閉塞性肺疾患'],
@@ -232,12 +278,24 @@ export const TEST_INDICATIONS: Record<string, string[]> = {
   t35: ['腰痛症'],
 }
 
+// 血液検査のウインドウの「まとめて選ぶ」。押すと中の項目が1つずつ選ばれる（オーダーは項目のまま）
+const CBC = ['WBC', 'RBC', 'Hb', 'Ht', 'PLT']
+export const BLOOD_PANELS: { name: string; codes: string[] }[] = [
+  { name: '血算5項目', codes: CBC },
+  { name: '肝機能3項目', codes: ['AST', 'ALT', 'GGT'] },
+  { name: '腎機能', codes: ['BUN', 'CRE', 'EGFR'] },
+  { name: '電解質', codes: ['NA', 'K', 'CL'] },
+  { name: '脂質4項目', codes: ['TC', 'TG', 'HDL', 'LDL'] },
+  { name: '血糖・HbA1c', codes: ['GLU', 'HBA1C'] },
+  { name: '甲状腺', codes: ['TSH', 'FT4'] },
+]
+
 export type OrderSet = { id: string; name: string; kana: string; alias: string; drugs: string[]; tests: string[]; disease?: string }
 
 export const SETS: OrderSet[] = [
   { id: 's1', name: '感冒セット', kana: 'かんぼう', alias: 'kaze', drugs: ['d09', 'd10'], tests: [], disease: '急性上気道炎' },
-  { id: 's2', name: '糖尿病 定期検査セット', kana: 'とうにょうびょう', alias: 'dmset', drugs: [], tests: ['t02', 't03', 't05'] },
-  { id: 's3', name: '年1回 生活習慣病検査セット', kana: 'せいかつしゅうかん', alias: 'yearly', drugs: [], tests: ['t01', 't03', 't05', 't06'] },
+  { id: 's2', name: '糖尿病 定期検査セット', kana: 'とうにょうびょう', alias: 'dmset', drugs: [], tests: ['HBA1C', 'GLU', 'AST', 'ALT', 'CRE', 'EGFR', 'UGEN', 'UACR'] },
+  { id: 's3', name: '年1回 生活習慣病検査セット', kana: 'せいかつしゅうかん', alias: 'yearly', drugs: [], tests: [...CBC, 'AST', 'ALT', 'GGT', 'CRE', 'EGFR', 'UA', 'TC', 'TG', 'HDL', 'LDL', 'GLU', 'HBA1C', 'UGEN', 't06'] },
 ]
 
 let seq = 0
@@ -283,9 +341,17 @@ const enc = (n: number, partial: Partial<Encounter>): Encounter => ({
 
 const dis = (name: string, start: string, main = false): Disease => ({ id: uid('dis'), name, start, main, status: '継続' })
 
-export const initialPatients = (): Patient[] => [
+// 患者ごとの検査結果・予約は別のファイル（labData.ts・scheduleData.ts）に持ち、ここで足す
+export const initialPatients = (): Patient[] => basePatients().map((p) => ({ ...p, labs: initialLabs()[p.id] ?? [], appointments: initialAppointments()[p.id] ?? [] }))
+
+const basePatients = (): Patient[] => [
   {
     id: 'p1',
+    zip: '100-0001',
+    address: '東京都サンプル区本町1-2-3',
+    phone: '03-0000-1234',
+    occupation: '会社員（嘱託）',
+    insurer: { payer: '01139999', symbol: '1234', number: '567', branch: '00', relation: '本人' },
     name: '山田 太郎',
     kana: 'ヤマダ タロウ',
     sex: '男',
@@ -300,7 +366,7 @@ export const initialPatients = (): Patient[] => [
         vitals: { sbp: 142, dbp: 86, hr: 74, bw: 71.2 },
         text: '血圧やや高め。家庭血圧 135/85前後。減塩を継続指導。\nHbA1c 7.2%。食事療法の振り返り。',
         rx: [rxFromDrug('d01'), rxFromDrug('d03'), rxFromDrug('d05')],
-        tests: [testFromCode('t02'), testFromCode('t03')],
+        tests: ['HBA1C', 'GLU', 'AST', 'ALT', 'GGT', 'CRE', 'EGFR', 'TG', 'HDL', 'LDL'].map(testFromCode),
       }),
       enc(59, {
         vitals: { sbp: 136, dbp: 82, hr: 70, bw: 70.5 },
@@ -316,6 +382,11 @@ export const initialPatients = (): Patient[] => [
   },
   {
     id: 'p2',
+    zip: '100-0002',
+    address: '東京都サンプル区中町4-5-6 サンプルハイツ201',
+    phone: '090-0000-2345',
+    occupation: '主婦',
+    insurer: { payer: '06139999', symbol: '88', number: '1024', branch: '02', relation: '家族' },
     name: '佐藤 花子',
     kana: 'サトウ ハナコ',
     sex: '女',
@@ -336,6 +407,11 @@ export const initialPatients = (): Patient[] => [
   },
   {
     id: 'p3',
+    zip: '100-0003',
+    address: '東京都サンプル区西町7-8',
+    phone: '080-0000-3456',
+    occupation: '飲食店勤務',
+    insurer: { payer: '139999', symbol: 'サ区', number: '40021', relation: '本人' },
     name: '鈴木 一郎',
     kana: 'スズキ イチロウ',
     sex: '男',
@@ -349,6 +425,11 @@ export const initialPatients = (): Patient[] => [
   },
   {
     id: 'p4',
+    zip: '100-0004',
+    address: '東京都サンプル区東町2-10-1',
+    phone: '090-0000-4567',
+    occupation: '事務職',
+    insurer: { payer: '01139999', symbol: '2210', number: '88', branch: '00', relation: '本人' },
     name: '高橋 美咲',
     kana: 'タカハシ ミサキ',
     sex: '女',
@@ -368,6 +449,12 @@ export const initialPatients = (): Patient[] => [
   },
   {
     id: 'p5',
+    zip: '100-0005',
+    address: '東京都サンプル区南町3-1-14',
+    phone: '03-0000-5678',
+    occupation: '無職',
+    careLevel: '要支援2',
+    insurer: { payer: '39139999', number: '00123456', relation: '本人' },
     name: '田中 健',
     kana: 'タナカ ケン',
     sex: '男',
@@ -382,7 +469,7 @@ export const initialPatients = (): Patient[] => [
         vitals: { sbp: 138, dbp: 76, bw: 62.0 },
         text: 'HbA1c 7.8%。間食が増えていた。食事内容を確認。',
         rx: [rxFromDrug('d03'), rxFromDrug('d04'), rxFromDrug('d15'), rxFromDrug('d14')],
-        tests: [testFromCode('t02'), testFromCode('t03'), testFromCode('t05')],
+        tests: ['HBA1C', 'GLU', 'AST', 'ALT', 'CRE', 'EGFR', 'UA', 'UGEN'].map(testFromCode),
       }),
       enc(39, {
         vitals: { sbp: 132, dbp: 74, bw: 61.4 },
@@ -415,4 +502,17 @@ export const STUDIES: Record<string, Study[]> = {
     { uid: '1.2.392.0.0.4.2', accession: 'A2024-0520', date: '2024-05-20', modality: 'CT', description: '頭部CT 単純', images: 32, report: '読影済' },
   ],
   p5: [{ uid: '1.2.392.0.0.5.1', accession: 'A2026-0710', date: '2026-07-10', modality: 'CR', description: '腰椎X線 2方向', images: 2, report: '読影済' }],
+}
+
+// 医療機関（架空）。文書・処方箋・領収書の差出人に使う
+export const CLINIC = {
+  name: 'サンプル内科クリニック',
+  zip: '100-0010',
+  address: '東京都サンプル区本町5-1-1 サンプルビル2階',
+  phone: '03-0000-0100',
+  fax: '03-0000-0101',
+  pref: '13', // 都道府県番号
+  code: '9999999', // 医療機関コード（7桁・架空）
+  doctor: '青木 誠',
+  departments: '内科',
 }

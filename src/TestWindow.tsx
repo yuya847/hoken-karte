@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { Icon } from './Icon'
-import { EXTERNAL_IMAGING, ORDER_KINDS, SETS, TESTS, type OrderKind } from './data'
+import { BLOOD_PANELS, EXTERNAL_IMAGING, ORDER_KINDS, SETS, TESTS, type OrderKind } from './data'
 import type { Action } from './store'
 import type { Draft, Patient } from './types'
 
@@ -73,6 +73,22 @@ export function TestWindow({ kind, patient, draft, dispatch, onClose }: { kind: 
                 <span className="truncate">前回と同じ（{last.date}：{last.tests.map((t) => t.name).join('、')}）</span>
               </button>
             )}
+            {kind === 'blood' &&
+              BLOOD_PANELS.map((x) => {
+                // まとめて選ぶ：中の項目を1つずつ選ぶ。全部選ばれていれば全部外す
+                const all = x.codes.every((c) => selected.has(c))
+                return (
+                  <button
+                    key={x.name}
+                    onClick={() => x.codes.forEach((c) => (all || !selected.has(c)) && toggle(c))}
+                    title={x.codes.map((c) => TESTS.find((t) => t.code === c)?.name).join('・')}
+                    className={`chip ${all ? 'chip-on' : ''}`}
+                  >
+                    {all ? <Icon name="check" size={16} /> : <Icon name="add" size={16} />}
+                    {x.name}
+                  </button>
+                )
+              })}
             {testSets.map((x) => (
               <button key={x.id} onClick={() => dispatch({ type: 'applySet', setId: x.id })} className="chip">
                 <Icon name="playlist_add" size={18} />
@@ -88,7 +104,7 @@ export function TestWindow({ kind, patient, draft, dispatch, onClose }: { kind: 
           </div>
         </div>
 
-        <div className="mx-3 grid flex-1 auto-rows-min grid-cols-2 gap-x-5 gap-y-4 overflow-y-auto rounded-lg bg-white px-4 py-4 lg:grid-cols-3">
+        <div className={`mx-3 grid flex-1 auto-rows-min grid-cols-2 gap-x-5 gap-y-4 overflow-y-auto rounded-lg bg-white px-4 py-4 ${kind === 'blood' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
           {K.groups.map((g) => {
             const items = visible.filter((t) => t.group === g)
             if (items.length === 0) return null
@@ -102,7 +118,7 @@ export function TestWindow({ kind, patient, draft, dispatch, onClose }: { kind: 
                       <button
                         key={t.code}
                         onClick={() => toggle(t.code)}
-                        className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                        className={`flex w-full items-center gap-2.5 rounded-md px-3 ${kind === 'blood' ? 'py-1.5' : 'py-2'} text-left text-sm transition-colors ${
                           on ? 'bg-lab-ctr font-medium text-lab' : 'hover:bg-surface-1'
                         }`}
                       >
