@@ -53,7 +53,7 @@ body {
   font-family: var(--font-sans);
   background: var(--color-page);
   color: var(--color-ink);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-break: strict;
   text-wrap: pretty;
   word-break: auto-phrase;
@@ -65,7 +65,7 @@ h1, h2, h3 { text-wrap: balance; }
     font-family: "Material Symbols Outlined";
     font-weight: normal;
     font-style: normal;
-    font-size: 20px;
+    font-size: 1.25rem;
     line-height: 1;
     display: inline-block;
     white-space: nowrap;
@@ -96,9 +96,9 @@ h1, h2, h3 { text-wrap: balance; }
 
   .card { @apply rounded-xl border border-line bg-ivory shadow-soft; }
   .label { @apply text-xs text-mist; }
-  .kbd { @apply rounded border border-line bg-cream px-1.5 py-px font-mono text-[11px] text-mist; }
+  .kbd { @apply rounded border border-line bg-cream px-1.5 py-px font-mono text-[0.6875rem] text-mist; }
   .btn-filled .kbd { @apply border-ivory/35 bg-transparent text-ivory/85; }
-  .pill { @apply rounded bg-cream px-1.5 py-0.5 text-[11px] text-mist; }
+  .pill { @apply rounded bg-cream px-1.5 py-0.5 text-[0.6875rem] text-mist; }
   .font-num { font-variant-numeric: tabular-nums; }
 }
 
@@ -109,9 +109,13 @@ h1, h2, h3 { text-wrap: balance; }
   .icon-btn { height: 40px; width: 40px; }
   .icon-btn-sm { height: 36px; width: 36px; }
   .chip { height: 36px; }
-  .field, textarea, input, select { font-size: 16px; }
+  .field, textarea, input, select { font-size: max(16px, 1rem); }
   .kbd { display: none; }
 }
+
+/* 横にずらせるがスクロールバーは出さない（患者のタブ） */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* オーダー列の並べ替え中に揺らす（ファストカルテの rail-wiggle と同じ） */
 @keyframes rail-wiggle { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
@@ -121,6 +125,7 @@ h1, h2, h3 { text-wrap: balance; }
 /* 文書の紙（print.tsx）。画面では隠し、印刷のときはこの紙だけを出す */
 .print-sheet { display: none; }
 @media print {
+  html { font-size: 16px !important; }
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { background: white; }

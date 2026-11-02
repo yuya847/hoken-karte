@@ -52,7 +52,7 @@ function Form({ patient, doc, set }: DocProps) {
   const date = (key: string, label: string) => (
     <label className="block">
       <span className="mb-1 block text-xs text-mist">{label}</span>
-      <input type="date" value={str(f, key)} onChange={(e) => set({ [key]: e.target.value })} className="field h-8 w-full px-2 text-[13px]" />
+      <input type="date" value={str(f, key)} onChange={(e) => set({ [key]: e.target.value })} className="field h-8 w-full px-2 text-[0.8125rem]" />
     </label>
   )
   return (

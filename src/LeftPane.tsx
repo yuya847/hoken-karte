@@ -66,14 +66,14 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
   return (
     <div className="flex h-full gap-3">
       {list.length > 0 && (
-        <nav aria-label="日付" className="w-[72px] shrink-0 overflow-y-auto max-lg:hidden">
+        <nav aria-label="日付" className="w-[4.5rem] shrink-0 overflow-y-auto max-lg:hidden">
           {months.map((m) => {
             const open = openMonths.has(m.ym)
             return (
               <div key={m.ym} className="mb-1.5">
                 <button
                   onClick={() => setOpenMonths((cur) => (cur.has(m.ym) ? new Set([...cur].filter((x) => x !== m.ym)) : new Set(cur).add(m.ym)))}
-                  className="flex items-center gap-0.5 text-[11px] whitespace-nowrap text-mist hover:text-ink"
+                  className="flex items-center gap-0.5 text-[0.6875rem] whitespace-nowrap text-mist hover:text-ink"
                 >
                   <span className={`inline-block transition-transform ${open ? 'rotate-90' : ''}`}>›</span>
                   <span className="font-num">{m.ym.replace('-', '/')}</span>
@@ -83,7 +83,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                     {m.days.map((d) => (
                       <button key={d} onClick={() => jump(d)} className="rounded-md border border-line bg-ivory px-1.5 py-1 text-center text-xs leading-tight text-clinical hover:bg-gold-soft">
                         <span className="font-num block">{Number(d.slice(8))}日</span>
-                        <span className="block text-[11px] text-mist">（{WD[new Date(`${d}T00:00:00`).getDay()]}）</span>
+                        <span className="block text-[0.6875rem] text-mist">（{WD[new Date(`${d}T00:00:00`).getDay()]}）</span>
                       </button>
                     ))}
                   </div>
@@ -126,7 +126,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                 <h3 className="mb-2 flex items-baseline gap-2 border-b border-line pb-1 text-sm font-semibold">
                   <span className="font-num">{dayLabel(e.date)}</span>
                   <span className="text-xs font-normal text-mist">{e.kind}</span>
-                  {e.version > 1 && <span className="rounded bg-doc-ctr px-1.5 text-[11px] font-medium text-doc">訂正 v{e.version}</span>}
+                  {e.version > 1 && <span className="rounded bg-doc-ctr px-1.5 text-[0.6875rem] font-medium text-doc">訂正 v{e.version}</span>}
                 </h3>
                 {showText && (
                   <div
@@ -138,7 +138,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                     <div className="mb-1 flex items-center gap-1.5 text-xs text-mist">
                       <span>記録</span>
                       <span>担当: 青木</span>
-                      <span className="rounded bg-sky-100 px-1 text-[11px] text-sky-800">Dr</span>
+                      <span className="rounded bg-sky-100 px-1 text-[0.6875rem] text-sky-800">Dr</span>
                       <span className="flex-1" />
                       <span className="flex gap-2 opacity-70 transition-opacity group-hover:opacity-100 touch:opacity-100">
                         {e.rx.length > 0 && (
@@ -155,7 +155,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                       </span>
                     </div>
                     {vitalsLine(e.vitals) && <div className="mb-1 font-num text-xs text-mist">{vitalsLine(e.vitals)}</div>}
-                    <div className="text-[13px] leading-relaxed whitespace-pre-wrap">{e.text || <span className="text-mist">（記載なし）</span>}</div>
+                    <div className="text-[0.8125rem] leading-relaxed whitespace-pre-wrap">{e.text || <span className="text-mist">（記載なし）</span>}</div>
                   </div>
                 )}
                 {(showRx || showTests || showDocs) && (
@@ -169,7 +169,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                       <div {...drag(['rx'])} onDoubleClick={() => onEdit(e.id, 'orders')} title="ダブルクリックで訂正・右へドラッグで処方をDo" className="cursor-grab rounded hover:bg-cream active:cursor-grabbing">
                         {e.rx.map((r) => (
                           <div key={r.id} className="flex items-baseline gap-2 border-b border-line py-1.5 text-sm last:border-b-0">
-                            <span className="w-8 shrink-0 rounded bg-rx-ctr text-center text-[11px] text-rx">処方</span>
+                            <span className="w-8 shrink-0 rounded bg-rx-ctr text-center text-[0.6875rem] text-rx">処方</span>
                             <span className="min-w-0 flex-1">{rxLine(r)}</span>
                           </div>
                         ))}
@@ -182,7 +182,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                           return (
                             ts.length > 0 && (
                               <div key={k} className="flex items-baseline gap-2 border-b border-line py-1.5 text-sm last:border-b-0">
-                                <span className={`w-8 shrink-0 rounded text-center text-[11px] ${ORDER_KINDS[k].tone}`}>{ORDER_KINDS[k].short}</span>
+                                <span className={`w-8 shrink-0 rounded text-center text-[0.6875rem] ${ORDER_KINDS[k].tone}`}>{ORDER_KINDS[k].short}</span>
                                 <span className="min-w-0 flex-1">{ts.map((t) => t.name).join('、')}</span>
                               </div>
                             )
@@ -193,7 +193,7 @@ export function LeftPane({ patient, selectedId, onDo, onQuote, onEdit, onDrag }:
                     {showDocs &&
                       e.letters.map((l) => (
                         <div key={l.id} className="flex items-baseline gap-2 py-1.5 text-sm">
-                          <span className="w-8 shrink-0 rounded bg-doc-ctr text-center text-[11px] text-doc">文書</span>
+                          <span className="w-8 shrink-0 rounded bg-doc-ctr text-center text-[0.6875rem] text-doc">文書</span>
                           <span className="min-w-0 flex-1">
                             {l.title}（{l.to || '宛先未記入'}）
                           </span>

@@ -5,6 +5,7 @@ import { BrandIcon } from './BrandMark'
 import { saveIntegrations, useIntegrations, type Integrations as Cfg } from './integrations'
 import { PatientIcon, ageSex, birthLabel } from './PatientIcon'
 import { AccountingPage } from './Accounting'
+import { FontSizePicker } from './FontSize'
 import { ResultsPage } from './Labs'
 import { NewPatientButton, QualBadge } from './Qualification'
 import { SchedulePage } from './Schedule'
@@ -62,7 +63,7 @@ export function NavRail({ view, patients, onSelect }: { view: View | null; patie
             <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-colors ${on ? 'bg-gold-soft' : 'group-hover:bg-ink/6'}`}>
               <Icon name={n.icon} fill={on} size={22} />
               {count > 0 && (
-                <span className="absolute -top-1 right-1.5 min-w-4 rounded-full bg-error px-1 text-center text-[11px] leading-4 font-medium text-white">{count}</span>
+                <span className="absolute -top-1 right-1.5 min-w-4 rounded-full bg-error px-1 text-center text-[0.6875rem] leading-4 font-medium text-white">{count}</span>
               )}
             </span>
             {n.label}
@@ -70,7 +71,7 @@ export function NavRail({ view, patients, onSelect }: { view: View | null; patie
         )
       })}
       <span className="flex-1" />
-      <span className="px-1 text-center text-[10px] leading-tight text-mist">青木 医師</span>
+      <span className="px-1 text-center text-[0.625rem] leading-tight text-mist">青木 医師</span>
     </aside>
   )
 }
@@ -343,6 +344,16 @@ export function Desk({ view, patients, dispatch, onMetrics }: DeskProps) {
 
   return (
     <Page title="設定">
+      <section className="mb-6 max-w-xl">
+        <h2 className="mb-2 flex items-center gap-2 text-base font-medium">
+          <Icon name="format_size" size={20} className="text-primary" />
+          文字サイズ
+        </h2>
+        <div className="space-y-2 rounded-lg bg-surface-1 px-4 py-4">
+          <FontSizePicker />
+          <p className="text-xs text-ink-2">画面全体の文字・ボタン・余白が一緒に大きくなります。印刷する文書の大きさは変わりません。この端末に保存します（右上の「文字」ボタンからも変えられます）。</p>
+        </div>
+      </section>
       <div className="max-w-xl divide-y divide-surface-2 rounded-lg bg-surface-1">
         <button onClick={onMetrics} className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-surface-2">
           <Icon name="monitoring" className="text-primary" />

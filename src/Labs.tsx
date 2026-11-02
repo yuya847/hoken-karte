@@ -181,11 +181,11 @@ export function LabsPanel({ patient, dispatch }: { patient: Patient; dispatch: (
           <div className="rounded-lg border border-line bg-ivory px-3 pt-2 pb-2">
             <div className="mb-1 flex flex-wrap gap-1">
               {chips.map((c) => (
-                <button key={c.id} onClick={() => setSel(c.id)} className={`chip h-6 px-2 text-[11px] ${sel === c.id ? 'chip-on' : ''}`}>
+                <button key={c.id} onClick={() => setSel(c.id)} className={`chip h-6 px-2 text-[0.6875rem] ${sel === c.id ? 'chip-on' : ''}`}>
                   {c.label}
                 </button>
               ))}
-              {item && !chips.some((c) => c.id === sel) && <span className="chip chip-on h-6 px-2 text-[11px]">{item.name}</span>}
+              {item && !chips.some((c) => c.id === sel) && <span className="chip chip-on h-6 px-2 text-[0.6875rem]">{item.name}</span>}
             </div>
             {item?.qualitative ? (
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 text-sm">
@@ -218,15 +218,15 @@ export function LabsPanel({ patient, dispatch }: { patient: Patient; dispatch: (
                   ))}
                 </div>
                 <span className="flex-1" />
-                <span className="text-[11px] text-mist">
+                <span className="text-[0.6875rem] text-mist">
                   <span className="text-error">↑高い</span> <span className="text-[#1565c0]">↓低い</span>・行を押すとグラフ
                 </span>
               </div>
 
               <div className="overflow-x-auto rounded-lg border border-line bg-ivory">
-                <table className="w-full border-collapse text-[13px]">
+                <table className="w-full border-collapse text-[0.8125rem]">
                   <thead>
-                    <tr className="border-b border-line bg-cream text-[11px] text-mist">
+                    <tr className="border-b border-line bg-cream text-[0.6875rem] text-mist">
                       <th className="sticky left-0 z-10 bg-cream px-2 py-1.5 text-left font-medium">項目</th>
                       <th className="px-1.5 py-1.5 text-left font-medium whitespace-nowrap">基準値</th>
                       {reports.map((r) => (
@@ -235,13 +235,13 @@ export function LabsPanel({ patient, dispatch }: { patient: Patient; dispatch: (
                           title={`採取 ${ymdSlash(r.date)}・報告 ${ymdSlash(r.reportedAt)}・${r.source}`}
                           className={`px-1.5 py-1 text-right font-medium whitespace-nowrap ${r.reviewed ? '' : 'bg-gold-soft'}`}
                         >
-                          <div className="font-num text-[12px] text-ink">{md(r.date)}</div>
+                          <div className="font-num text-[0.75rem] text-ink">{md(r.date)}</div>
                           {r.reviewed ? (
-                            <div className="text-[10px]">確認済</div>
+                            <div className="text-[0.625rem]">確認済</div>
                           ) : (
                             <button
                               onClick={() => dispatch({ type: 'reviewLab', patientId: patient.id, reportId: r.id })}
-                              className="mt-0.5 rounded bg-gold-dark px-1.5 text-[10px] leading-4 text-white hover:brightness-110"
+                              className="mt-0.5 rounded bg-gold-dark px-1.5 text-[0.625rem] leading-4 text-white hover:brightness-110"
                             >
                               確認
                             </button>
@@ -258,9 +258,9 @@ export function LabsPanel({ patient, dispatch }: { patient: Patient; dispatch: (
                           return (
                             <tr key={it.code} onClick={() => setSel(it.code)} className={`cursor-pointer border-b border-line last:border-b-0 ${on ? 'bg-lab-ctr' : 'hover:bg-cream'}`}>
                               <td className={`sticky left-0 z-10 px-2 py-1 whitespace-nowrap ${on ? 'bg-lab-ctr font-medium' : 'bg-ivory'}`}>{it.name}</td>
-                              <td className="px-1.5 py-1 text-[11px] leading-tight whitespace-nowrap text-mist">
+                              <td className="px-1.5 py-1 text-[0.6875rem] leading-tight whitespace-nowrap text-mist">
                                 <span className="font-num">{rangeText(it.code)}</span>
-                                {it.unit && <span className="block text-[10px]">{it.unit}</span>}
+                                {it.unit && <span className="block text-[0.625rem]">{it.unit}</span>}
                               </td>
                               {reports.map((r) => (
                                 <td key={r.id} className={`px-1.5 py-1 text-right ${r.reviewed ? '' : 'bg-gold-soft/40'}`}>
@@ -282,7 +282,7 @@ export function LabsPanel({ patient, dispatch }: { patient: Patient; dispatch: (
                   </tbody>
                 </table>
               </div>
-              <p className="mt-1.5 text-[11px] text-mist">日付は採取日。見出しの日付に触れると報告日と検査会社（架空）が出ます。</p>
+              <p className="mt-1.5 text-[0.6875rem] text-mist">日付は採取日。見出しの日付に触れると報告日と検査会社（架空）が出ます。</p>
             </>
           )}
         </div>
@@ -295,7 +295,7 @@ function GroupRows({ group, count, children }: { group: string; count: number; c
   return (
     <>
       <tr className="border-b border-line bg-surface-1">
-        <td colSpan={count + 2} className="sticky left-0 px-2 py-0.5 text-[11px] font-medium text-mist">
+        <td colSpan={count + 2} className="sticky left-0 px-2 py-0.5 text-[0.6875rem] font-medium text-mist">
           {group}
         </td>
       </tr>
@@ -340,13 +340,13 @@ function AbnChips({ r, max = 4 }: { r: LabReport; max?: number }) {
       {abn.slice(0, max).map((v) => (
         <span
           key={v.code}
-          className={`rounded border px-1.5 text-[11px] leading-5 whitespace-nowrap ${v.flag === 'H' ? 'border-red-200 bg-red-50 text-error' : 'border-blue-200 bg-blue-50 text-[#1565c0]'}`}
+          className={`rounded border px-1.5 text-[0.6875rem] leading-5 whitespace-nowrap ${v.flag === 'H' ? 'border-red-200 bg-red-50 text-error' : 'border-blue-200 bg-blue-50 text-[#1565c0]'}`}
         >
           {shortName(v.code)} {v.value}
           {typeof v.value === 'number' ? ` ${v.flag}` : ''}
         </span>
       ))}
-      {abn.length > max && <span className="text-[11px] text-mist">+{abn.length - max}</span>}
+      {abn.length > max && <span className="text-[0.6875rem] text-mist">+{abn.length - max}</span>}
     </span>
   )
 }
@@ -437,7 +437,7 @@ export function ResultsPage({ patients, dispatch, onOpen }: { patients: Patient[
                               <PatientIcon patient={x.patient} size={28} />
                               <div className="min-w-0">
                                 <div className="font-medium whitespace-nowrap">{x.patient.name}</div>
-                                <div className="text-[11px] whitespace-nowrap text-mist">
+                                <div className="text-[0.6875rem] whitespace-nowrap text-mist">
                                   {ageSex(x.patient)}
                                   <span className="md:hidden">・採取 {md(x.report.date)}</span>
                                 </div>
@@ -446,14 +446,14 @@ export function ResultsPage({ patients, dispatch, onOpen }: { patients: Patient[
                           </td>
                           <td className="px-3 py-2 font-num whitespace-nowrap max-md:hidden">
                             {ymdSlash(x.report.date)}
-                            <div className="text-[11px] text-mist">報告 {md(x.report.reportedAt)}</div>
+                            <div className="text-[0.6875rem] text-mist">報告 {md(x.report.reportedAt)}</div>
                           </td>
                           <td className="px-3 py-2">
                             <AbnChips r={x.report} />
                           </td>
                           <td className="px-3 py-2 text-right">
                             {x.report.reviewed ? (
-                              <span className="text-[11px] text-mist">確認済</span>
+                              <span className="text-[0.6875rem] text-mist">確認済</span>
                             ) : (
                               <button
                                 onClick={(e) => {
@@ -509,21 +509,21 @@ function Preview({ row, onReview, onOpen }: { row: Row; onReview: () => void; on
       <div className="flex items-center gap-2.5 border-b border-l-4 border-line border-l-clinical px-3 py-2.5">
         <PatientIcon patient={patient} size={32} />
         <div className="min-w-0 flex-1 leading-tight">
-          <div className="text-[11px] text-mist">{patient.kana}</div>
+          <div className="text-[0.6875rem] text-mist">{patient.kana}</div>
           <div className="font-semibold">{patient.name}</div>
-          <div className="text-[11px] text-mist">
+          <div className="text-[0.6875rem] text-mist">
             {ageSex(patient)}・{birthLabel(patient.birth)}生
           </div>
         </div>
       </div>
-      <div className="flex flex-wrap gap-x-3 px-3 pt-2 text-[11px] text-mist">
+      <div className="flex flex-wrap gap-x-3 px-3 pt-2 text-[0.6875rem] text-mist">
         <span>採取 {ymdSlash(report.date)}</span>
         <span>報告 {ymdSlash(report.reportedAt)}</span>
         <span>{report.source}</span>
       </div>
       <div className="max-h-[52vh] overflow-y-auto px-3 pb-2">
-        <table className="w-full text-[13px]">
-          <thead className="text-[11px] text-mist">
+        <table className="w-full text-[0.8125rem]">
+          <thead className="text-[0.6875rem] text-mist">
             <tr className="border-b border-line">
               <th className="py-1 text-left font-medium">項目</th>
               <th className="py-1 text-right font-medium">今回</th>
@@ -542,10 +542,10 @@ function Preview({ row, onReview, onOpen }: { row: Row; onReview: () => void; on
                       <td className="py-1 text-right">
                         <Val v={report.values.find((x) => x.code === it.code)} />
                       </td>
-                      <td className="py-1 text-right font-num text-[12px] text-mist" title={prev ? `${ymdSlash(prev.date)} の値` : undefined}>
+                      <td className="py-1 text-right font-num text-[0.75rem] text-mist" title={prev ? `${ymdSlash(prev.date)} の値` : undefined}>
                         {prev?.v ? valueText(prev.v) : '—'}
                       </td>
-                      <td className="py-1 pl-3 text-[11px] whitespace-nowrap text-mist">
+                      <td className="py-1 pl-3 text-[0.6875rem] whitespace-nowrap text-mist">
                         <span className="font-num">{rangeText(it.code)}</span> {it.unit}
                       </td>
                     </tr>
@@ -581,7 +581,7 @@ function GroupBlock({ group, children }: { group: string; children: React.ReactN
   return (
     <>
       <tr>
-        <td colSpan={4} className="pt-2 pb-0.5 text-[11px] font-medium text-mist">
+        <td colSpan={4} className="pt-2 pb-0.5 text-[0.6875rem] font-medium text-mist">
           {group}
         </td>
       </tr>
@@ -649,7 +649,7 @@ function Importer({ patients, dispatch }: { patients: Patient[]; dispatch: (a: A
         >
           <Icon name="upload_file" size={32} className="text-mist" />
           <div className="text-sm">検査会社の結果ファイル（CSV・HL7）をここに落とす</div>
-          <div className="text-[11px] text-mist">試作ではファイルの中身は読まず、架空の結果を受信します</div>
+          <div className="text-[0.6875rem] text-mist">試作ではファイルの中身は読まず、架空の結果を受信します</div>
           <button onClick={() => receive(`架空検査センター_${today().replace(/-/g, '')}.csv`)} className="btn btn-sm btn-tonal mt-1">
             <Icon name="cloud_download" size={18} />
             検査会社から受信（架空）
@@ -664,7 +664,7 @@ function Importer({ patients, dispatch }: { patients: Patient[]; dispatch: (a: A
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-[11px] text-mist">
+              <thead className="text-left text-[0.6875rem] text-mist">
                 <tr className="border-b border-line">
                   <th className="px-3 py-1.5 font-medium">受信した患者</th>
                   <th className="px-3 py-1.5 font-medium max-md:hidden">結果</th>
@@ -680,19 +680,19 @@ function Importer({ patients, dispatch }: { patients: Patient[]; dispatch: (a: A
                     <tr key={x.id} className={`border-b border-line last:border-b-0 ${t === 'skip' ? 'text-mist' : ''}`}>
                       <td className="px-3 py-2">
                         <div className="font-medium whitespace-nowrap">{x.name}</div>
-                        <div className="text-[11px] whitespace-nowrap text-mist">
+                        <div className="text-[0.6875rem] whitespace-nowrap text-mist">
                           {x.kana}・{birthLabel(x.birth)}・{x.sex}
                         </div>
                       </td>
                       <td className="px-3 py-2 max-md:hidden">
-                        <div className="mb-0.5 text-[11px] text-mist">
+                        <div className="mb-0.5 text-[0.6875rem] text-mist">
                           採取 {md(x.report.date)}・{x.report.values.length}項目
                         </div>
                         <AbnChips r={x.report} max={3} />
                       </td>
                       <td className="px-3 py-2">
-                        <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap ${MATCH_STYLE[m.status]}`}>{m.status}</span>
-                        {m.reason && <div className="mt-0.5 text-[10px] whitespace-nowrap text-mist">{m.reason}</div>}
+                        <span className={`rounded px-1.5 py-0.5 text-[0.6875rem] font-medium whitespace-nowrap ${MATCH_STYLE[m.status]}`}>{m.status}</span>
+                        {m.reason && <div className="mt-0.5 text-[0.625rem] whitespace-nowrap text-mist">{m.reason}</div>}
                       </td>
                       <td className="px-3 py-2">
                         <select
@@ -724,7 +724,7 @@ function Importer({ patients, dispatch }: { patients: Patient[]; dispatch: (a: A
             </table>
           </div>
           <div className="flex flex-wrap items-center gap-2 border-t border-line bg-cream px-3 py-2">
-            <span className="text-[11px] text-mist">{waiting.length > 0 ? `取り込む先が決まっていない ${waiting.length}件は残します（候補・不一致は人が選ぶ）` : '取り込む先が決まりました'}</span>
+            <span className="text-[0.6875rem] text-mist">{waiting.length > 0 ? `取り込む先が決まっていない ${waiting.length}件は残します（候補・不一致は人が選ぶ）` : '取り込む先が決まりました'}</span>
             <span className="flex-1" />
             <button onClick={() => setBatch(null)} className="btn btn-sm btn-text">
               やめる

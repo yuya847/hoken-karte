@@ -150,7 +150,7 @@ export function ReceiptWindow({ patient, encounter, bill, paid, onClose }: { pat
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-semibold">領収証・診療明細書</h2>
-            <p className="truncate text-[11px] text-mist">
+            <p className="truncate text-[0.6875rem] text-mist">
               {patient.name} ・ {encounter.date.replace(/-/g, '/')} ・ {yen(bill.charge)}
             </p>
           </div>

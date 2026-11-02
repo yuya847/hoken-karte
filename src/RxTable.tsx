@@ -79,7 +79,7 @@ export function RxTable({
 
   const set = (r: RxItem, patch: Partial<RxItem>) => dispatch({ type: 'updateRx', id: r.id, patch })
   const cell = 'border-b border-surface-2 px-2 py-1.5 align-middle'
-  const sub = 'px-2 py-1 text-right text-[13px]'
+  const sub = 'px-2 py-1 text-right text-[0.8125rem]'
   const numInput = 'w-full rounded-md bg-transparent px-1 py-0.5 text-right tabular-nums outline-none hover:bg-surface-1 focus:bg-white focus:ring-2 focus:ring-primary'
 
   return (
@@ -165,7 +165,7 @@ export function RxTable({
               <tr className="bg-error-ctr/40">
                 <td />
                 <td />
-                <td colSpan={4} className="px-2 py-1 text-[13px]">
+                <td colSpan={4} className="px-2 py-1 text-[0.8125rem]">
                   <button onClick={() => setEntry(head.id)} className="font-medium text-error hover:underline">
                     {BLANK_LABEL} — 押して1日の回数・用法・日数を選ぶ
                   </button>
@@ -198,7 +198,7 @@ export function RxTable({
                       className={numInput}
                     />
                   </td>
-                  <td className="px-1 py-1 text-[13px]">{daysText(head).replace(/^\d+/, '')}</td>
+                  <td className="px-1 py-1 text-[0.8125rem]">{daysText(head).replace(/^\d+/, '')}</td>
                 </>
               )}
               <td />
@@ -272,8 +272,8 @@ export function RxTable({
                         {DRUG_CLASS[d.id]}・{isExternal(d) ? `${doseText(d)} ${usageLine(d)} ${d.site ?? ''}` : `${doseText(d)} ${usageLine(d)} ${daysText(d)}`}
                       </span>
                     </span>
-                    {history.has(d.id) && <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] text-ink-2">処方歴あり</span>}
-                    {draft.rx.some((r) => r.drugId === d.id) && <span className="shrink-0 text-[11px] text-rx">入力済み</span>}
+                    {history.has(d.id) && <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[0.6875rem] text-ink-2">処方歴あり</span>}
+                    {draft.rx.some((r) => r.drugId === d.id) && <span className="shrink-0 text-[0.6875rem] text-rx">入力済み</span>}
                   </li>
                 ))}
               </ul>

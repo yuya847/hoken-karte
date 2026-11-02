@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toHira } from './CommandPalette'
 import { Icon } from './Icon'
+import { labItem } from './labData'
 import { BLOOD_PANELS, EXTERNAL_IMAGING, ORDER_KINDS, SETS, TESTS, type OrderKind } from './data'
 import type { Action } from './store'
 import type { Draft, Patient } from './types'
@@ -123,9 +124,13 @@ export function TestWindow({ kind, patient, draft, dispatch, onClose }: { kind: 
                         }`}
                       >
                         <Icon name={on ? 'check_box' : 'check_box_outline_blank'} fill={on} size={20} className={on ? 'text-lab' : 'text-ink-2'} />
-                        <span className="min-w-0 flex-1">{t.name}</span>
+                        <span className="min-w-0 flex-1">
+                          {t.name}
+                          {/* 1つのオーダーで複数の結果が返る項目（血算・尿定性・クレアチニン）は中身を小さく出す */}
+                          {t.results && <span className="block truncate text-[0.6875rem] font-normal text-mist">{t.results.map((c) => labItem(c)?.name ?? c).join('・')}</span>}
+                        </span>
                         {EXTERNAL_IMAGING.has(t.code) && (
-                          <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] font-normal whitespace-nowrap text-ink-2">外部依頼</span>
+                          <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[0.6875rem] font-normal whitespace-nowrap text-ink-2">外部依頼</span>
                         )}
                       </button>
                     )
@@ -140,7 +145,7 @@ export function TestWindow({ kind, patient, draft, dispatch, onClose }: { kind: 
         <div className="flex min-h-14 flex-wrap items-center gap-1.5 px-6 py-2.5 text-sm">
           <span className="label mr-1">選択中 {selected.size}件</span>
           {mine.map((t) => (
-            <span key={t.id} className="inline-flex h-8 items-center gap-1 rounded-lg bg-lab-ctr pr-1 pl-3 text-[13px] font-medium text-lab">
+            <span key={t.id} className="inline-flex h-8 items-center gap-1 rounded-lg bg-lab-ctr pr-1 pl-3 text-[0.8125rem] font-medium text-lab">
               {t.name}
               <button onClick={() => toggle(t.code)} className="icon-btn h-6 w-6 text-lab" aria-label="解除">
                 <Icon name="close" size={16} />

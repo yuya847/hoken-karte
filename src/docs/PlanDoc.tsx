@@ -166,7 +166,7 @@ function Form({ patient, doc, set }: DocProps) {
   const date = (key: string, label: string, onChange = (v: string) => set({ [key]: v })) => (
     <label className="block">
       <span className="mb-1 block text-xs text-mist">{label}</span>
-      <input type="date" value={str(f, key)} onChange={(e) => onChange(e.target.value)} className="field h-8 w-full px-2 text-[13px]" />
+      <input type="date" value={str(f, key)} onChange={(e) => onChange(e.target.value)} className="field h-8 w-full px-2 text-[0.8125rem]" />
     </label>
   )
   const cont = str(f, 'round') === '継続'
@@ -189,7 +189,7 @@ function Form({ patient, doc, set }: DocProps) {
           {t('weightGoal', '体重（目標）', { unit: 'kg' })}
           <div>
             <span className="mb-1 block text-xs text-mist">BMI（自動）</span>
-            <span className="flex h-8 items-center px-1 font-num text-[13px]">{bmiOf(f) || '—'}</span>
+            <span className="flex h-8 items-center px-1 font-num text-[0.8125rem]">{bmiOf(f) || '—'}</span>
           </div>
           {t('waist', '腹囲（現在）', { unit: 'cm' })}
           {t('waistGoal', '腹囲（目標）', { unit: 'cm' })}
@@ -282,11 +282,11 @@ function Form({ patient, doc, set }: DocProps) {
           placeholder: '例：〇〇眼科で年1回の眼底検査',
         })}
         {/* 2024年改定の様式：説明して理解を確認したことを担当医がチェックすれば患者署名を省略できる、として作った（TODO：2026改定で要確認） */}
-        <label className="flex items-start gap-2 rounded-md border border-line px-3 py-2 text-[13px]">
+        <label className="flex items-start gap-2 rounded-md border border-line px-3 py-2 text-[0.8125rem]">
           <input type="checkbox" checked={bool(f, 'explained')} onChange={(e) => set({ explained: e.target.checked })} className="mt-0.5 h-4 w-4 accent-clinical" />
           <span>
             患者が療養計画書の内容について説明を受け、十分に理解したことを確認した
-            <span className="block text-[11px] text-mist">チェックすると患者署名欄は「省略」と印刷されます</span>
+            <span className="block text-[0.6875rem] text-mist">チェックすると患者署名欄は「省略」と印刷されます</span>
           </span>
         </label>
       </Section>

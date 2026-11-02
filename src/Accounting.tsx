@@ -115,11 +115,11 @@ export function AccountingPage({ patients, dispatch, onOpen }: { patients: Patie
                     aria-current={on}
                     className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left ${on ? 'bg-[#f3ead8] outline-2 -outline-offset-2 outline-clinical' : p.status === '会計待ち' ? 'bg-[#fff8e6] hover:brightness-[0.98]' : 'hover:bg-cream'}`}
                   >
-                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap ${STATUS_CHIP[p.status]}`}>{p.status}</span>
+                    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[0.6875rem] font-medium whitespace-nowrap ${STATUS_CHIP[p.status]}`}>{p.status}</span>
                     <PatientIcon patient={p} size={28} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{p.name}</span>
-                      <span className="block truncate text-[11px] text-mist">{summary(e)}</span>
+                      <span className="block truncate text-[0.6875rem] text-mist">{summary(e)}</span>
                     </span>
                     <span className={`shrink-0 font-num text-sm ${p.status === '済' ? 'text-mist' : 'font-medium'}`}>{yen(charge)}</span>
                   </button>
@@ -192,7 +192,7 @@ function Checkout({ patient, dispatch, onOpen, onPaid, receivedRef, payRef }: Ch
       <div className="card flex flex-wrap items-center gap-x-4 gap-y-2 border-l-4 border-l-clinical px-4 py-2.5">
         <PatientIcon patient={patient} size={34} />
         <div className="leading-tight">
-          <div className="text-[11px] text-mist">{patient.kana}</div>
+          <div className="text-[0.6875rem] text-mist">{patient.kana}</div>
           <div className="text-lg font-semibold">{patient.name}</div>
         </div>
         <span className="text-sm">
@@ -235,7 +235,7 @@ function Checkout({ patient, dispatch, onOpen, onPaid, receivedRef, payRef }: Ch
         <div className="card flex min-w-0 flex-col overflow-hidden lg:min-h-0 lg:flex-1">
           <div className="flex shrink-0 items-baseline gap-2 border-b border-line bg-cream px-4 py-2">
             <h2 className="text-sm font-semibold">診療内容と点数</h2>
-            <span className="rounded bg-gold-soft px-1.5 text-[11px] text-gold-dark">仮計算</span>
+            <span className="rounded bg-gold-soft px-1.5 text-[0.6875rem] text-gold-dark">仮計算</span>
             <span className="flex-1" />
             <span className="font-num text-sm">
               合計 <span className="text-base font-semibold">{bill.total.toLocaleString()}</span> 点
@@ -252,10 +252,10 @@ function Checkout({ patient, dispatch, onOpen, onPaid, receivedRef, payRef }: Ch
                 {bill.lines
                   .filter((l) => l.cat === c)
                   .map((l, i) => (
-                    <div key={i} className="flex items-baseline gap-2 py-0.5 pl-3 text-[13px]">
+                    <div key={i} className="flex items-baseline gap-2 py-0.5 pl-3 text-[0.8125rem]">
                       <span className="min-w-0 flex-1">
                         {l.name}
-                        {l.note && <span className="ml-2 text-[11px] text-mist">{l.note}</span>}
+                        {l.note && <span className="ml-2 text-[0.6875rem] text-mist">{l.note}</span>}
                       </span>
                       <span className={`shrink-0 font-num ${l.points ? '' : 'text-mist'}`}>{l.points.toLocaleString()}</span>
                     </div>

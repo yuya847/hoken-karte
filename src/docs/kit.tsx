@@ -12,9 +12,9 @@ export const list = (f: DocFields, k: string) => (Array.isArray(f[k]) ? (f[k] as
 export function Section({ title, children, note }: { title: string; children: React.ReactNode; note?: string }) {
   return (
     <section className="space-y-2.5">
-      <h3 className="flex items-baseline gap-2 border-b border-line pb-1 text-[13px] font-semibold">
+      <h3 className="flex items-baseline gap-2 border-b border-line pb-1 text-[0.8125rem] font-semibold">
         {title}
-        {note && <span className="text-[11px] font-normal text-mist">{note}</span>}
+        {note && <span className="text-[0.6875rem] font-normal text-mist">{note}</span>}
       </h3>
       {children}
     </section>
@@ -27,13 +27,13 @@ export function Text({ label, value, onChange, rows, placeholder, from, unit, cl
     <label className={`block ${className}`}>
       <span className="mb-1 flex items-center gap-1.5 text-xs text-mist">
         {label}
-        {from && <span className="rounded bg-[#e3ecfb] px-1 text-[10px] text-clinical">カルテから</span>}
+        {from && <span className="rounded bg-[#e3ecfb] px-1 text-[0.625rem] text-clinical">カルテから</span>}
       </span>
       <span className="flex items-center gap-1.5">
         {rows ? (
-          <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} className="field w-full resize-y px-3 py-2 text-[13px] leading-relaxed" />
+          <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} className="field w-full resize-y px-3 py-2 text-[0.8125rem] leading-relaxed" />
         ) : (
-          <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="field h-8 w-full px-2.5 text-[13px]" />
+          <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="field h-8 w-full px-2.5 text-[0.8125rem]" />
         )}
         {unit && <span className="shrink-0 text-xs text-mist">{unit}</span>}
       </span>
@@ -138,9 +138,9 @@ export function DateField({ label, value, onChange, from }: { label: string; val
     <label className="block">
       <span className="mb-1 flex items-center gap-1.5 text-xs text-mist">
         {label}
-        {from && <span className="rounded bg-[#e3ecfb] px-1 text-[10px] text-clinical">カルテから</span>}
+        {from && <span className="rounded bg-[#e3ecfb] px-1 text-[0.625rem] text-clinical">カルテから</span>}
       </span>
-      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} className="field h-8 w-full px-2.5 text-[13px]" />
+      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} className="field h-8 w-full px-2.5 text-[0.8125rem]" />
     </label>
   )
 }

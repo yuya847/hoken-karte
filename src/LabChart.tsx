@@ -143,7 +143,7 @@ export function LabChart({
         })}
       </svg>
       {series.length > 1 && (
-        <div className="mt-0.5 flex gap-3 pl-9 text-[11px] text-mist">
+        <div className="mt-0.5 flex gap-3 pl-9 text-[0.6875rem] text-mist">
           {series.map((s) => (
             <span key={s.label} className="flex items-center gap-1">
               <span className="inline-block h-0.5 w-3" style={{ background: s.color }} />

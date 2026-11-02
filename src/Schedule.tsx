@@ -18,7 +18,8 @@ const md = (s: string) => {
 }
 const longDate = (s: string) => `${s.replace(/-/g, '/')}（${WD[toDate(s).getDay()]}）`
 const daysBetween = (a: string, b: string) => Math.round((toDate(b).getTime() - toDate(a).getTime()) / 86400000)
-const ROW = 22 // 15分の高さ(px)
+const ROW = 22 // 15分の高さ（文字サイズ「小」のときのpx。表示は rem にして文字サイズの設定に合わせる）
+const rem = (px: number) => `${px / 16}rem`
 
 // 予約表に並べる1件。patientId があればカルテのある患者、なければ表示だけの架空の予約
 type Booking = { id: string; date: string; time: string; minutes: number; purpose: string; name: string; memo?: string; patientId?: string }
@@ -188,7 +189,7 @@ export function SchedulePage({ patients, dispatch, onOpen }: { patients: Patient
 
         <aside className="space-y-4 lg:w-72 lg:shrink-0">
           <section className="card px-4 py-3">
-            <h2 className="mb-2 text-[13px] font-semibold">{view === 'day' ? 'この日の予約' : 'この週の予約'}</h2>
+            <h2 className="mb-2 text-[0.8125rem] font-semibold">{view === 'day' ? 'この日の予約' : 'この週の予約'}</h2>
             <ul className="space-y-1 text-sm">
               {PURPOSES.map((p) => (
                 <li key={p} className="flex items-center gap-2">
@@ -206,11 +207,11 @@ export function SchedulePage({ patients, dispatch, onOpen }: { patients: Patient
           </section>
 
           <section className="card px-4 py-3">
-            <h2 className="mb-1 flex items-center gap-1.5 text-[13px] font-semibold">
+            <h2 className="mb-1 flex items-center gap-1.5 text-[0.8125rem] font-semibold">
               <Icon name="medication" size={18} className="text-[#8a5a00]" />
               処方が切れるのに予約がない
             </h2>
-            <p className="mb-2 text-[11px] text-mist">定期処方の残りが7日以内（切れたものを含む）で、先の予約がない患者</p>
+            <p className="mb-2 text-[0.6875rem] text-mist">定期処方の残りが7日以内（切れたものを含む）で、先の予約がない患者</p>
             {due.length === 0 ? (
               <p className="text-xs text-mist">ありません</p>
             ) : (
@@ -219,7 +220,7 @@ export function SchedulePage({ patients, dispatch, onOpen }: { patients: Patient
                   <li key={p.id} className="flex items-center gap-2 py-1.5">
                     <button onClick={() => onOpen(p.id)} className="min-w-0 flex-1 text-left">
                       <span className="block truncate text-sm font-medium hover:underline">{p.name}</span>
-                      <span className={`block text-[11px] ${left < 0 ? 'font-medium text-error' : 'text-[#8a5a00]'}`}>
+                      <span className={`block text-[0.6875rem] ${left < 0 ? 'font-medium text-error' : 'text-[#8a5a00]'}`}>
                         {left < 0 ? `${md(out)}に切れた（${-left}日前）` : left === 0 ? '今日で切れる' : `${md(out)}に切れる（あと${left}日）`}
                       </span>
                     </button>
@@ -240,7 +241,7 @@ export function SchedulePage({ patients, dispatch, onOpen }: { patients: Patient
               </ul>
             )}
           </section>
-          <p className="flex items-start gap-1.5 text-[11px] text-mist touch:hidden">
+          <p className="flex items-start gap-1.5 text-[0.6875rem] text-mist touch:hidden">
             <Icon name="keyboard" size={14} />
             ←→ で前後の{view === 'day' ? '日' : '週'}、T で今日、D・W で日・週。空いている枠を押すと予約を入れられます。カルテのない予約（氏名に印のないもの）は架空の表示です。
           </p>
@@ -288,7 +289,7 @@ function TimeGrid({ days, bookings, confirmId, onSlot, onOpen, onDay, onAskCance
   const nowMin = now.getHours() * 60 + now.getMinutes()
 
   return (
-    <div className={week ? 'min-w-[760px]' : ''}>
+    <div className={week ? 'min-w-[47.5rem]' : ''}>
       {week && (
         <div className="sticky top-0 z-20 flex border-b border-line bg-ivory">
           <div className="sticky left-0 z-10 w-12 shrink-0 bg-ivory" />
@@ -297,7 +298,7 @@ function TimeGrid({ days, bookings, confirmId, onSlot, onOpen, onDay, onAskCance
             return (
               <button key={d} onClick={() => onDay(d)} title="この日を開く" className={`flex-1 border-l border-line py-1.5 text-center text-xs hover:bg-cream ${d === t ? 'font-semibold text-clinical' : toDate(d).getDay() === 0 ? 'text-error' : ''}`}>
                 <span className="font-num">{md(d)}</span>
-                <span className="ml-1 text-[10px] text-mist">{isOpenDay(d) ? `${n}件` : '休診'}</span>
+                <span className="ml-1 text-[0.625rem] text-mist">{isOpenDay(d) ? `${n}件` : '休診'}</span>
               </button>
             )
           })}
@@ -305,9 +306,9 @@ function TimeGrid({ days, bookings, confirmId, onSlot, onOpen, onDay, onAskCance
       )}
       <div className="flex">
         {/* 時刻の列 */}
-        <div className={`relative w-12 shrink-0 ${week ? 'sticky left-0 z-[25] bg-ivory' : ''}`} style={{ height: rows * ROW }}>
+        <div className={`relative w-12 shrink-0 ${week ? 'sticky left-0 z-[25] bg-ivory' : ''}`} style={{ height: rem(rows * ROW) }}>
           {Array.from({ length: rows / 2 }, (_, i) => DAY_START + i * 30).map((m) => (
-            <span key={m} style={{ top: m === DAY_START ? 2 : ((m - DAY_START) / SLOT) * ROW - 6 }} className={`font-num absolute right-1.5 text-[10px] ${m % 60 === 0 ? 'text-ink' : 'text-mist/70'}`}>
+            <span key={m} style={{ top: rem(m === DAY_START ? 2 : ((m - DAY_START) / SLOT) * ROW - 6) }} className={`font-num absolute right-1.5 text-[0.625rem] ${m % 60 === 0 ? 'text-ink' : 'text-mist/70'}`}>
               {hhmmOf(m)}
             </span>
           ))}
@@ -316,7 +317,7 @@ function TimeGrid({ days, bookings, confirmId, onSlot, onOpen, onDay, onAskCance
           const dayB = bookings.filter((b) => b.date === d)
           const lay = layout(dayB)
           return (
-            <div key={d} className="relative min-w-0 flex-1 border-l border-line" style={{ height: rows * ROW }}>
+            <div key={d} className="relative min-w-0 flex-1 border-l border-line" style={{ height: rem(rows * ROW) }}>
               {/* 空いている枠：押すと予約を入れる */}
               {Array.from({ length: rows }, (_, i) => DAY_START + i * SLOT).map((m) => {
                 const open = isOpenAt(d, m)
@@ -327,10 +328,10 @@ function TimeGrid({ days, bookings, confirmId, onSlot, onOpen, onDay, onAskCance
                     tabIndex={open ? 0 : -1}
                     onClick={() => onSlot(d, m)}
                     aria-label={`${md(d)} ${hhmmOf(m)} に予約を入れる`}
-                    style={{ top: ((m - DAY_START) / SLOT) * ROW, height: ROW }}
+                    style={{ top: rem(((m - DAY_START) / SLOT) * ROW), height: rem(ROW) }}
                     className={`group absolute inset-x-0 border-t text-left outline-none ${m % 60 === 0 ? 'border-line' : 'border-line/40'} ${open ? 'hover:bg-gold-soft/50 focus-visible:bg-gold-soft/70' : ''}`}
                   >
-                    {open && <span className="hidden pl-1.5 text-[11px] text-gold-dark group-hover:inline group-focus-visible:inline">＋ {hhmmOf(m)}</span>}
+                    {open && <span className="hidden pl-1.5 text-[0.6875rem] text-gold-dark group-hover:inline group-focus-visible:inline">＋ {hhmmOf(m)}</span>}
                   </button>
                 )
               })}
@@ -338,15 +339,15 @@ function TimeGrid({ days, bookings, confirmId, onSlot, onOpen, onDay, onAskCance
               {closedRanges(d).map(([s, e, label]) => (
                 <div
                   key={s}
-                  style={{ top: ((s - DAY_START) / SLOT) * ROW, height: ((e - s) / SLOT) * ROW }}
+                  style={{ top: rem(((s - DAY_START) / SLOT) * ROW), height: rem(((e - s) / SLOT) * ROW) }}
                   className="pointer-events-none absolute inset-x-0 flex items-center justify-center bg-[repeating-linear-gradient(135deg,var(--color-surface-2)_0,var(--color-surface-2)_6px,var(--color-surface-1)_6px,var(--color-surface-1)_12px)]"
                 >
-                  <span className="rounded bg-ivory/80 px-2 py-0.5 text-[11px] text-mist">{label}</span>
+                  <span className="rounded bg-ivory/80 px-2 py-0.5 text-[0.6875rem] text-mist">{label}</span>
                 </div>
               ))}
               {/* 今の時刻 */}
               {d === t && nowMin >= DAY_START && nowMin <= DAY_END && (
-                <div style={{ top: ((nowMin - DAY_START) / SLOT) * ROW }} className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-error">
+                <div style={{ top: rem(((nowMin - DAY_START) / SLOT) * ROW) }} className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-error">
                   <span className="absolute -top-[5px] -left-[5px] h-2 w-2 rounded-full bg-error" />
                 </div>
               )}
@@ -359,11 +360,11 @@ function TimeGrid({ days, bookings, confirmId, onSlot, onOpen, onDay, onAskCance
                 return (
                   <div
                     key={b.id}
-                    style={{ top, height: h, left: `calc(${(L.lane / L.lanes) * 100}% + 2px)`, width: `calc(${100 / L.lanes}% - 4px)` }}
+                    style={{ top: rem(top), height: rem(h), left: `calc(${(L.lane / L.lanes) * 100}% + 2px)`, width: `calc(${100 / L.lanes}% - 4px)` }}
                     className={`group/card absolute z-10 overflow-hidden rounded-md border-l-4 shadow-sm ${st.card} ${b.patientId ? '' : 'opacity-75'}`}
                   >
                     {confirming ? (
-                      <div className="flex h-full items-center gap-1 bg-ivory px-1.5 text-[11px]">
+                      <div className="flex h-full items-center gap-1 bg-ivory px-1.5 text-[0.6875rem]">
                         <span className="truncate">取り消す？</span>
                         <button onClick={() => onCancel(b)} className="rounded bg-error px-1.5 text-white">
                           はい
@@ -378,7 +379,7 @@ function TimeGrid({ days, bookings, confirmId, onSlot, onOpen, onDay, onAskCance
                           onClick={() => b.patientId && onOpen(b.patientId)}
                           disabled={!b.patientId}
                           title={`${b.time} ${b.name}（${b.purpose}・${b.minutes}分）${b.memo ? `\n${b.memo}` : ''}${b.patientId ? '\n押すとカルテを開く' : '\nカルテのない架空の予約'}`}
-                          className={`flex h-full w-full items-start gap-1 px-1.5 py-[3px] text-left text-[11px] leading-tight ${b.patientId ? 'hover:brightness-95' : 'cursor-default'}`}
+                          className={`flex h-full w-full items-start gap-1 px-1.5 py-[3px] text-left text-[0.6875rem] leading-tight ${b.patientId ? 'hover:brightness-95' : 'cursor-default'}`}
                         >
                           <span className="font-num shrink-0 text-mist">{b.time}</span>
                           <span className={`min-w-0 truncate ${b.patientId ? 'font-semibold' : ''}`}>{b.name}</span>
@@ -709,7 +710,7 @@ function NextVisitPanel({ anchor, patient, draft, next, dispatch, onClose }: { a
             }}
             className={`chip h-auto flex-col items-start gap-0 py-1 text-left ${date === s.date ? 'chip-on' : ''}`}
           >
-            <span className="text-[10px] text-mist">
+            <span className="text-[0.625rem] text-mist">
               <span className="kbd mr-1">{i + 1}</span>
               {s.label}
             </span>
@@ -750,13 +751,13 @@ function NextVisitPanel({ anchor, patient, draft, next, dispatch, onClose }: { a
           <div className="max-h-32 space-y-1 overflow-y-auto">
             {am.length > 0 && (
               <div className="flex flex-wrap items-center gap-1">
-                <span className="w-7 text-[10px] text-mist">午前</span>
+                <span className="w-7 text-[0.625rem] text-mist">午前</span>
                 {timeChips(am)}
               </div>
             )}
             {pm.length > 0 && (
               <div className="flex flex-wrap items-center gap-1">
-                <span className="w-7 text-[10px] text-mist">午後</span>
+                <span className="w-7 text-[0.625rem] text-mist">午後</span>
                 {timeChips(pm)}
               </div>
             )}
@@ -774,7 +775,7 @@ function NextVisitPanel({ anchor, patient, draft, next, dispatch, onClose }: { a
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="flex-1 text-[11px] text-mist touch:invisible">1〜4で候補・Enterで予約</span>
+        <span className="flex-1 text-[0.6875rem] text-mist touch:invisible">1〜4で候補・Enterで予約</span>
         <button onClick={onClose} className="btn btn-sm btn-text">
           やめる
         </button>

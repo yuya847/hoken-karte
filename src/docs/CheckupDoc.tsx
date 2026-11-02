@@ -156,7 +156,7 @@ const range = (code: string) => {
 function Num({ label, value, onChange, unit, flag, from }: { label: string; value: string; onChange: (v: string) => void; unit?: string; flag?: string; from?: boolean }) {
   return (
     <label className="block min-w-0">
-      <span className="mb-0.5 flex items-center gap-1 truncate text-[11px] text-mist">
+      <span className="mb-0.5 flex items-center gap-1 truncate text-[0.6875rem] text-mist">
         {label}
         {from && value && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-clinical" title="カルテから" />}
       </span>
@@ -165,9 +165,9 @@ function Num({ label, value, onChange, unit, flag, from }: { label: string; valu
           value={value}
           onChange={(e) => onChange(e.target.value.replace(/[^\d.]/g, ''))}
           inputMode="decimal"
-          className={`field h-8 w-full min-w-0 px-2 text-right font-num text-[13px] ${flag ? 'border-error/60 text-error' : ''}`}
+          className={`field h-8 w-full min-w-0 px-2 text-right font-num text-[0.8125rem] ${flag ? 'border-error/60 text-error' : ''}`}
         />
-        <span className="w-12 shrink-0 truncate text-[10px] text-mist">
+        <span className="w-12 shrink-0 truncate text-[0.625rem] text-mist">
           {flag && <b className="mr-0.5 text-error">{flag}</b>}
           {unit}
         </span>
@@ -195,8 +195,8 @@ function Form({ patient, doc, set }: DocProps) {
           <Num label="身長" value={str(f, 'height')} onChange={(v) => set({ height: v })} unit="cm" />
           <Num label="体重" value={str(f, 'weight')} onChange={(v) => set({ weight: v })} unit="kg" from />
           <label className="block">
-            <span className="mb-0.5 block text-[11px] text-mist">BMI（自動）</span>
-            <span className="flex h-8 items-center justify-end rounded-md bg-cream px-2 font-num text-[13px]">{bmi ? bmi.toFixed(1) : '—'}</span>
+            <span className="mb-0.5 block text-[0.6875rem] text-mist">BMI（自動）</span>
+            <span className="flex h-8 items-center justify-end rounded-md bg-cream px-2 font-num text-[0.8125rem]">{bmi ? bmi.toFixed(1) : '—'}</span>
           </label>
           <Num label="腹囲" value={str(f, 'waist')} onChange={(v) => set({ waist: v })} unit="cm" />
           <Num label="収縮期血圧" value={str(f, 'sbp')} onChange={(v) => set({ sbp: v })} unit="mmHg" from flag={(n(f, 'sbp') ?? 0) >= 130 ? 'H' : ''} />
@@ -237,9 +237,9 @@ function Form({ patient, doc, set }: DocProps) {
         <Section title="がん検診の結果">
           {cancers.map((c) => (
             <div key={c} className="space-y-1.5 rounded-md border border-line p-2.5">
-              <div className="text-[13px] font-medium">
+              <div className="text-[0.8125rem] font-medium">
                 {c}
-                <span className="ml-2 text-[11px] font-normal text-mist">{CANCER_METHOD[c]}</span>
+                <span className="ml-2 text-[0.6875rem] font-normal text-mist">{CANCER_METHOD[c]}</span>
               </div>
               <Choice value={str(f, `ca_${c}`)} options={CANCER_RESULTS} onChange={(v) => set({ [`ca_${c}`]: v })} />
               <Text label="所見" value={str(f, `caNote_${c}`)} onChange={(v) => set({ [`caNote_${c}`]: v })} />
@@ -251,11 +251,11 @@ function Form({ patient, doc, set }: DocProps) {
       <Section title="判定" note="仮の計算（本番前に基準を確認）">
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-md bg-cream px-3 py-2">
-            <div className="text-[11px] text-mist">メタボリックシンドローム</div>
+            <div className="text-[0.6875rem] text-mist">メタボリックシンドローム</div>
             <div className="text-sm font-semibold">{metabo}</div>
           </div>
           <div className="rounded-md bg-cream px-3 py-2">
-            <div className="text-[11px] text-mist">特定保健指導</div>
+            <div className="text-[0.6875rem] text-mist">特定保健指導</div>
             <div className="text-sm font-semibold">{level}</div>
           </div>
         </div>

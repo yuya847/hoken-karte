@@ -393,7 +393,7 @@ export function PrescriptionWindow({ patient, encounter, onClose }: { patient: P
 
   const groups = groupRp(encounter.rx)
   const toggle = (on: boolean, label: string, onClick: () => void, title: string) => (
-    <button type="button" onClick={onClick} title={title} className={`chip h-6 px-2 text-[11px] ${on ? 'chip-on' : ''}`}>
+    <button type="button" onClick={onClick} title={title} className={`chip h-6 px-2 text-[0.6875rem] ${on ? 'chip-on' : ''}`}>
       {on ? '✓ ' : ''}
       {label}
     </button>
@@ -415,7 +415,7 @@ export function PrescriptionWindow({ patient, encounter, onClose }: { patient: P
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-semibold">院外処方箋</h2>
-            <p className="truncate text-[11px] text-mist">
+            <p className="truncate text-[0.6875rem] text-mist">
               {patient.name} ・ {encounter.date.replace(/-/g, '/')} の処方 {encounter.rx.length}剤 ・ 設定はこの端末に保存されます
             </p>
           </div>
@@ -437,7 +437,7 @@ export function PrescriptionWindow({ patient, encounter, onClose }: { patient: P
         <div className="flex min-h-0 flex-1">
           <div className={`min-h-0 space-y-5 overflow-y-auto bg-ivory px-5 py-4 text-sm md:w-[42%] md:shrink-0 md:border-r md:border-line max-md:flex-1 ${pane === 'form' ? '' : 'max-md:hidden'}`}>
             <section className="space-y-2">
-              <h3 className="border-b border-line pb-1 text-[13px] font-semibold">日付</h3>
+              <h3 className="border-b border-line pb-1 text-[0.8125rem] font-semibold">日付</h3>
               <div className="flex flex-wrap items-end gap-3">
                 <label className="block">
                   <span className="mb-1 block text-xs text-mist">交付年月日</span>
@@ -458,13 +458,13 @@ export function PrescriptionWindow({ patient, encounter, onClose }: { patient: P
             </section>
 
             <section className="space-y-2">
-              <h3 className="flex flex-wrap items-baseline gap-x-2 border-b border-line pb-1 text-[13px] font-semibold">
+              <h3 className="flex flex-wrap items-baseline gap-x-2 border-b border-line pb-1 text-[0.8125rem] font-semibold">
                 処方
-                <span className="text-[11px] font-normal text-mist">薬ごとに 一般名で書く・後発品への変更不可・患者希望（先発品）</span>
+                <span className="text-[0.6875rem] font-normal text-mist">薬ごとに 一般名で書く・後発品への変更不可・患者希望（先発品）</span>
               </h3>
               {groups.map((g, gi) => (
                 <div key={g[0].id} className="rounded-lg border border-line bg-white px-3 py-2">
-                  <div className="mb-1 flex items-baseline gap-2 text-[11px] text-mist">
+                  <div className="mb-1 flex items-baseline gap-2 text-[0.6875rem] text-mist">
                     <span className="font-medium text-ink">Rp{gi + 1}</span>
                     {usageRow(g[0])}
                     <span className="ml-auto font-num">{daysRow(g[0])}</span>
@@ -472,7 +472,7 @@ export function PrescriptionWindow({ patient, encounter, onClose }: { patient: P
                   {g.map((r) => (
                     <div key={r.id} className="border-t border-line py-1.5 first:border-t-0">
                       <div className="flex items-baseline gap-2">
-                        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{drugLabel(r, opts)}</span>
+                        <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium">{drugLabel(r, opts)}</span>
                         <span className="shrink-0 font-num text-xs text-mist">{amount(r)}</span>
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1">
@@ -493,7 +493,7 @@ export function PrescriptionWindow({ patient, encounter, onClose }: { patient: P
             </section>
 
             <section className="space-y-2">
-              <h3 className="border-b border-line pb-1 text-[13px] font-semibold">薬局が残薬を確認したときの対応</h3>
+              <h3 className="border-b border-line pb-1 text-[0.8125rem] font-semibold">薬局が残薬を確認したときの対応</h3>
               <div className="flex flex-wrap gap-1">
                 {(
                   [
@@ -510,9 +510,9 @@ export function PrescriptionWindow({ patient, encounter, onClose }: { patient: P
             </section>
 
             <section className="space-y-2">
-              <h3 className="flex flex-wrap items-baseline gap-x-2 border-b border-line pb-1 text-[13px] font-semibold">
+              <h3 className="flex flex-wrap items-baseline gap-x-2 border-b border-line pb-1 text-[0.8125rem] font-semibold">
                 リフィル
-                <span className="text-[11px] font-normal text-mist">症状が安定した定期処方を受診なしで繰り返し使う（総使用回数3回まで）</span>
+                <span className="text-[0.6875rem] font-normal text-mist">症状が安定した定期処方を受診なしで繰り返し使う（総使用回数3回まで）</span>
               </h3>
               <div className="flex flex-wrap gap-1">
                 {[0, 2, 3].map((n) => (
@@ -548,7 +548,7 @@ export function PrescriptionButton({ patient, encounter, compact }: { patient: P
         }}
         onDoubleClick={(e) => e.stopPropagation()}
         title="院外処方箋を表示・印刷"
-        className={compact ? 'flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-clinical hover:bg-gold-soft' : 'btn btn-outlined'}
+        className={compact ? 'flex items-center gap-0.5 rounded px-1 py-0.5 text-[0.6875rem] text-clinical hover:bg-gold-soft' : 'btn btn-outlined'}
       >
         <Icon name="print" size={compact ? 14 : 18} />
         {compact ? '処方箋' : '処方箋を印刷'}

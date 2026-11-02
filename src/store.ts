@@ -52,7 +52,7 @@ export type Action =
   | { type: 'discardDraft'; patientId: string }
   | { type: 'reset' }
 
-const KEY = 'hoken-karte-proto-v3'
+const KEY = 'hoken-karte-proto-v4'
 
 export const emptyDraft = (): Draft => ({ vitals: {}, text: '', rx: [], tests: [], letter: null, savedAt: null })
 

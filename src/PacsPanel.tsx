@@ -46,7 +46,7 @@ export function PacsPanel({ patient, draft, onClose }: { patient: Patient; draft
             <div className="label mb-1.5">今回の依頼（確定時に送信）</div>
             <div className="flex flex-wrap gap-1.5">
               {requested.map((t) => (
-                <span key={t.id} className="flex h-8 items-center gap-1 rounded-lg bg-lab-ctr px-3 text-[13px] font-medium whitespace-nowrap text-lab">
+                <span key={t.id} className="flex h-8 items-center gap-1 rounded-lg bg-lab-ctr px-3 text-[0.8125rem] font-medium whitespace-nowrap text-lab">
                   <Icon name="send" size={16} />
                   {t.name}
                   <span className="font-normal text-ink-2">→ {cfg.orderTo || '送信先未設定'}</span>
@@ -78,7 +78,7 @@ export function PacsPanel({ patient, draft, onClose }: { patient: Patient; draft
                         {s.date}・{s.images}枚・受付番号 {s.accession}
                       </span>
                     </span>
-                    <span className={`rounded-md px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${s.report === '読影済' ? 'bg-rx-ctr text-rx' : 'bg-[#ffefc9] text-[#5c4300]'}`}>
+                    <span className={`rounded-md px-2 py-0.5 text-[0.6875rem] font-medium whitespace-nowrap ${s.report === '読影済' ? 'bg-rx-ctr text-rx' : 'bg-[#ffefc9] text-[#5c4300]'}`}>
                       {s.report}
                     </span>
                     {adv && (

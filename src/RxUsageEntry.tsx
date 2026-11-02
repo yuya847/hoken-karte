@@ -130,7 +130,7 @@ export function RxUsageEntry({ group, onCommit, onCancel }: { group: RxItem[]; o
   const timesLabel = (t: number | null) => (t === null ? '頓用' : `${t}回`)
 
   return (
-    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5 py-1 text-[13px]" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5 py-1 text-[0.8125rem]" onPointerDown={(e) => e.stopPropagation()}>
       <label className={box(step === 'per')}>
         1回
         <input
@@ -168,7 +168,7 @@ export function RxUsageEntry({ group, onCommit, onCancel }: { group: RxItem[]; o
                 }}
                 className={chip(i === hi, t === curTimes && times !== undefined)}
               >
-                <span className="font-num text-[10px] opacity-70">{t ?? 0}</span>
+                <span className="font-num text-[0.625rem] opacity-70">{t ?? 0}</span>
                 {timesLabel(t)}
               </button>
             ))
@@ -191,7 +191,7 @@ export function RxUsageEntry({ group, onCommit, onCancel }: { group: RxItem[]; o
                 }}
                 className={chip(i === hi, t === timing)}
               >
-                <span className="font-num text-[10px] opacity-70">{i + 1}</span>
+                <span className="font-num text-[0.625rem] opacity-70">{i + 1}</span>
                 {t}
               </button>
             ))
@@ -215,7 +215,7 @@ export function RxUsageEntry({ group, onCommit, onCancel }: { group: RxItem[]; o
         />
         {ext ? head.unit : curTimes === null ? '回分' : '日分'}
       </label>
-      <span className="text-[11px] text-ink-2 max-lg:hidden">{step === 'times' ? `1〜4のキー${ext ? '' : '・0で頓用'}` : step === 'timing' ? '番号のキーで選ぶ' : 'Enterで次へ（空なら薄い値）'}</span>
+      <span className="text-[0.6875rem] text-ink-2 max-lg:hidden">{step === 'times' ? `1〜4のキー${ext ? '' : '・0で頓用'}` : step === 'timing' ? '番号のキーで選ぶ' : 'Enterで次へ（空なら薄い値）'}</span>
     </div>
   )
 }

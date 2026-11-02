@@ -86,10 +86,10 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
           value={draft.text}
           onChange={(e) => dispatch({ type: 'text', text: e.target.value })}
           placeholder={`ここに自由に記載（主訴・所見・評価・方針）\n${VITALS_HINT}`}
-          className="block h-52 w-full resize-y bg-transparent px-3 py-2 text-[13px] leading-[1.8] outline-none placeholder:text-mist/60 max-md:h-40 max-md:text-base"
+          className="block h-52 w-full resize-y bg-transparent px-3 py-2 text-[0.8125rem] leading-[1.8] outline-none placeholder:text-mist/60 max-md:h-40 max-md:text-base"
         />
         {detected && (
-          <div className="flex items-center gap-1 px-3 pb-1.5 text-[11px] text-mist">
+          <div className="flex items-center gap-1 px-3 pb-1.5 text-[0.6875rem] text-mist">
             <Icon name="monitor_heart" size={14} className="text-clinical" />
             読み取ったバイタル：<span className="font-num">{detected}</span>
           </div>
@@ -101,7 +101,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
           {/* 処方は用法・日数が同じ薬を1つのRpにまとめて表示（富士通カルテと同じ並び）。直すときは処方ウインドウで */}
           {groupRp(draft.rx).map((g, gi) => (
             <div key={g[0].id} className="flex gap-2 rounded-md border border-line bg-ivory p-2 text-sm">
-              <span className="h-fit w-9 shrink-0 rounded bg-rx-ctr py-0.5 text-center text-[11px] text-rx">Rp{gi + 1}</span>
+              <span className="h-fit w-9 shrink-0 rounded bg-rx-ctr py-0.5 text-center text-[0.6875rem] text-rx">Rp{gi + 1}</span>
               <div className="min-w-0 flex-1">
                 {g.map((r) => (
                   <div key={r.id} className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
                       {r.name}
                     </button>
                     {r.noGeneric && <span className="pill whitespace-nowrap">後発変更不可</span>}
-                    <span className="text-[13px] whitespace-nowrap text-rx font-num">{doseText(r)}</span>
+                    <span className="text-[0.8125rem] whitespace-nowrap text-rx font-num">{doseText(r)}</span>
                     <button onClick={() => dispatch({ type: 'removeRx', id: r.id })} className="flex h-6 w-6 items-center justify-center rounded text-red-600 hover:bg-red-50" aria-label="削除">
                       <Icon name="close" size={16} />
                     </button>
@@ -128,12 +128,12 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
             if (ts.length === 0) return null
             return (
               <div key={k} className="flex items-start gap-2 rounded-md border border-line bg-ivory p-2 text-sm">
-                <button onClick={() => onOpenTests(k)} title={`${ORDER_KINDS[k].label}のウインドウを開く`} className={`mt-0.5 w-9 shrink-0 rounded py-0.5 text-center text-[11px] ${ORDER_KINDS[k].tone}`}>
+                <button onClick={() => onOpenTests(k)} title={`${ORDER_KINDS[k].label}のウインドウを開く`} className={`mt-0.5 w-9 shrink-0 rounded py-0.5 text-center text-[0.6875rem] ${ORDER_KINDS[k].tone}`}>
                   {ORDER_KINDS[k].short}
                 </button>
                 <div className="flex min-w-0 flex-1 flex-wrap gap-1">
                   {ts.map((t) => (
-                    <span key={t.id} className="inline-flex h-6 items-center gap-0.5 rounded border border-line bg-white pr-0.5 pl-1.5 text-[12px] font-medium">
+                    <span key={t.id} className="inline-flex h-6 items-center gap-0.5 rounded border border-line bg-white pr-0.5 pl-1.5 text-[0.75rem] font-medium">
                       {t.name}
                       <button onClick={() => dispatch({ type: 'removeTest', id: t.id })} className="flex h-5 w-5 items-center justify-center rounded text-mist hover:bg-red-50 hover:text-red-600" aria-label={`${t.name}を外す`}>
                         <Icon name="close" size={14} />
@@ -141,13 +141,13 @@ export function ChartEditor({ patient, draft, dispatch, onOpenRx, onOpenTests }:
                     </span>
                   ))}
                 </div>
-                <span className="mt-0.5 shrink-0 text-[11px] text-mist">{ts.length}項目</span>
+                <span className="mt-0.5 shrink-0 text-[0.6875rem] text-mist">{ts.length}項目</span>
               </div>
             )
           })}
         </div>
       </div>
-      <div className="mt-1.5 flex items-center gap-2 px-0.5 text-[11px] text-mist">
+      <div className="mt-1.5 flex items-center gap-2 px-0.5 text-[0.6875rem] text-mist">
         下書きは自動保存されます
         {(draft.text || !empty) && (
           <button onClick={() => dispatch({ type: 'discardDraft', patientId: patient.id })} className="text-clinical hover:underline">
@@ -194,7 +194,7 @@ export function PastEditor({ encounter, focus, dispatch }: { encounter: Encounte
           保存すると v{encounter.version + 1} になり、元の版は履歴に残ります
         </div>
         {vitalsLine(vitals) && <div className="text-xs tabular-nums text-ink-2">バイタル：{vitalsLine(vitals)}</div>}
-        <textarea ref={ref} value={text} onChange={(e) => setText(e.target.value)} className="field h-48 resize-y px-4 py-3 text-[15px] leading-relaxed" />
+        <textarea ref={ref} value={text} onChange={(e) => setText(e.target.value)} className="field h-48 resize-y px-4 py-3 text-[0.9375rem] leading-relaxed" />
 
         <section ref={ordersRef} className="scroll-mt-2 space-y-2">
           <SectionTitle icon="assignment" label="この日のオーダー" tone="bg-surface-2 text-ink-2" />
@@ -210,7 +210,7 @@ export function PastEditor({ encounter, focus, dispatch }: { encounter: Encounte
           {tests.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {tests.map((t) => (
-                <span key={t.id} className="flex h-8 items-center gap-1 rounded-lg bg-lab-ctr pr-1 pl-3 text-[13px] font-medium text-lab">
+                <span key={t.id} className="flex h-8 items-center gap-1 rounded-lg bg-lab-ctr pr-1 pl-3 text-[0.8125rem] font-medium text-lab">
                   {t.name}
                   <button onClick={() => setTests((cur) => cur.filter((x) => x.id !== t.id))} className="icon-btn icon-btn-sm" aria-label={`${t.name}を外す`}>
                     <Icon name="close" size={16} />

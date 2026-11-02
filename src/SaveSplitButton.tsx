@@ -57,8 +57,9 @@ export function SaveSplitButton({ mode, onMode, onSave }: { mode: SaveMode; onMo
   return (
     <div ref={ref} className="relative flex shrink-0">
       <button onClick={() => onSave(mode)} title={`${cur.label}（⌘Enter）`} className="flex h-8 items-center gap-1 rounded-l-md bg-clinical px-3 text-sm font-medium whitespace-nowrap text-ivory hover:brightness-110 touch:h-10">
-        <span className="max-md:hidden">{cur.label}</span>
-        <span className="md:hidden">{cur.short}</span>
+        {/* 記載の枠の幅で切り替える（文字サイズを大きくしたときも確定ボタンがはみ出さない） */}
+        <span className="hidden @[30rem]:inline">{cur.label}</span>
+        <span className="@[30rem]:hidden">{cur.short}</span>
       </button>
       <button
         onClick={() => setOpen((v) => !v)}
@@ -75,7 +76,7 @@ export function SaveSplitButton({ mode, onMode, onSave }: { mode: SaveMode; onMo
               <Icon name="check" size={18} className={m.id === mode ? 'text-clinical' : 'invisible'} />
               <span>
                 <span className="block text-sm font-medium">{m.label}</span>
-                <span className="block text-[11px] text-mist">{m.desc}</span>
+                <span className="block text-[0.6875rem] text-mist">{m.desc}</span>
               </span>
             </button>
           ))}

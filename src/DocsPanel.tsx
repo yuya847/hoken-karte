@@ -44,12 +44,12 @@ export function DocsPanel({ patient, dispatch, onOpen, onLetter }: { patient: Pa
                   <button onClick={() => onOpen(d.id)} className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-cream">
                     <Icon name={docDef(d.kind).icon} size={20} className="text-mist" />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-medium">{d.title}</span>
-                      <span className="block text-[11px] text-mist">
+                      <span className="block truncate text-[0.8125rem] font-medium">{d.title}</span>
+                      <span className="block text-[0.6875rem] text-mist">
                         {d.createdAt.replace(/-/g, '/')} 作成 ・ {new Date(d.updatedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 更新
                       </span>
                     </span>
-                    <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap ${STATUS_STYLE[d.status]}`}>{d.status}</span>
+                    <span className={`rounded px-1.5 py-0.5 text-[0.6875rem] font-medium whitespace-nowrap ${STATUS_STYLE[d.status]}`}>{d.status}</span>
                   </button>
                 </li>
               ))}
@@ -57,12 +57,12 @@ export function DocsPanel({ patient, dispatch, onOpen, onLetter }: { patient: Pa
                 <li key={l.id} className="flex items-center gap-2.5 px-3 py-2">
                   <Icon name="forward_to_inbox" size={20} className="text-mist" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium">{l.title}</span>
-                    <span className="block truncate text-[11px] text-mist">
+                    <span className="block truncate text-[0.8125rem] font-medium">{l.title}</span>
+                    <span className="block truncate text-[0.6875rem] text-mist">
                       {l.date.replace(/-/g, '/')} ・ {l.to || '宛先なし'}
                     </span>
                   </span>
-                  <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${STATUS_STYLE['作成済']}`}>カルテに添付</span>
+                  <span className={`rounded px-1.5 py-0.5 text-[0.6875rem] font-medium ${STATUS_STYLE['作成済']}`}>カルテに添付</span>
                 </li>
               ))}
             </ul>
@@ -74,7 +74,7 @@ export function DocsPanel({ patient, dispatch, onOpen, onLetter }: { patient: Pa
           <div className="space-y-3">
             {GROUPS.map((g) => (
               <div key={g}>
-                <div className="mb-1 text-[11px] text-mist">{g}</div>
+                <div className="mb-1 text-[0.6875rem] text-mist">{g}</div>
                 <div className="grid grid-cols-1 gap-1.5 xl:grid-cols-2">
                   {g === '紹介・返書' && <NewButton icon="forward_to_inbox" title="診療情報提供書（紹介状）" desc="今日のカルテに添付（⌘L）" onClick={onLetter} />}
                   {DOC_DEFS.filter((d) => d.group === g).map((d) => (
@@ -97,8 +97,8 @@ function NewButton({ icon, title, desc, onClick }: { icon: string; title: string
         <Icon name={icon} size={18} />
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[13px] font-medium">{title}</span>
-        <span className="block truncate text-[11px] text-mist">{desc}</span>
+        <span className="block truncate text-[0.8125rem] font-medium">{title}</span>
+        <span className="block truncate text-[0.6875rem] text-mist">{desc}</span>
       </span>
     </button>
   )
@@ -133,7 +133,7 @@ export function DocWindow({ patient, docId, dispatch, onClose }: { patient: Pati
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-semibold">{doc.title}</h2>
-            <p className="truncate text-[11px] text-mist">
+            <p className="truncate text-[0.6875rem] text-mist">
               {patient.name} ・ 入力はその場で保存されます
             </p>
           </div>

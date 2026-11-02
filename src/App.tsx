@@ -13,6 +13,7 @@ import { OrderBar, OrderRail, type RailId } from './OrderRail'
 import { ChartEditor, PastEditor } from './RightPane'
 import { DiseasePanel } from './DiseasePanel'
 import { DocWindow, DocsPanel } from './DocsPanel'
+import { FontSizeButton } from './FontSize'
 import { LabsPanel } from './Labs'
 import { NextVisit } from './Schedule'
 import { QualBadge } from './Qualification'
@@ -343,6 +344,7 @@ export default function App() {
               <button onClick={() => setMetricsOpen(true)} className="icon-btn icon-btn-sm" title="操作計測（⌘M）">
                 <Icon name="monitoring" size={18} />
               </button>
+              <FontSizeButton />
               <button onClick={() => setHelp(true)} className="icon-btn icon-btn-sm font-medium" title="キー操作（?）">
                 ?
               </button>
@@ -359,11 +361,11 @@ export default function App() {
                   <PatientIcon patient={patient} size={34} />
                 </span>
                 <div className="leading-tight whitespace-nowrap">
-                  <div className="text-[11px] text-mist max-md:hidden">{patient.kana}</div>
+                  <div className="text-[0.6875rem] text-mist max-md:hidden">{patient.kana}</div>
                   <h1 className="text-xl font-semibold max-md:text-lg">{patient.name}</h1>
                 </div>
                 <span className="font-mono text-sm font-semibold text-clinical max-md:hidden">
-                  <span className="mr-1 font-sans text-[11px] font-normal text-mist">ID</span>
+                  <span className="mr-1 font-sans text-[0.6875rem] font-normal text-mist">ID</span>
                   {patient.id.toUpperCase()}
                 </span>
                 <span className="text-line max-md:hidden">|</span>
@@ -386,7 +388,7 @@ export default function App() {
                 <span className="pill max-md:hidden">{patient.encounters.length === 0 ? '初診' : '再診'}</span>
                 <QualBadge patient={patient} dispatch={dispatch} />
                 <span className="flex-1" />
-                <span className={`hidden items-center gap-1 text-[11px] lg:flex ${saveOk ? 'text-mist' : 'font-medium text-error'}`}>
+                <span className={`hidden items-center gap-1 text-[0.6875rem] lg:flex ${saveOk ? 'text-mist' : 'font-medium text-error'}`}>
                   <Icon name={saveOk ? (draft.savedAt ? 'cloud_done' : 'draft') : 'error'} size={15} />
                   {saveOk ? (draft.savedAt ? `下書き ${draft.savedAt}` : '下書きなし') : '下書きを保存できません'}
                 </span>
@@ -445,11 +447,11 @@ export default function App() {
                 />
               </div>
               <div className={`flex min-h-0 min-w-0 flex-1 gap-3 lg:flex-[1] ${phonePane === 'now' ? '' : 'max-md:hidden'}`}>
-                <div className="card relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <div className="@container card relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   {/* 保存の帯（ファストカルテの EntryPanel と同じ：左に「記載」、右に確定のボタン） */}
                   <div className="no-print flex shrink-0 items-center gap-2 border-b border-line px-3 py-1.5">
                     <span className="text-sm font-semibold">記載</span>
-                    <span className="font-num text-[11px] whitespace-nowrap text-mist max-xl:hidden">{dayLabel(today())}</span>
+                    <span className="font-num hidden text-[0.6875rem] whitespace-nowrap text-mist @[34rem]:inline">{dayLabel(today())}</span>
                     <span className="flex-1" />
                     <NextVisit patient={patient} draft={draft} dispatch={dispatch} />
                     <SaveSplitButton mode={saveMode} onMode={setSaveMode} onSave={(m) => confirm(m)} />
@@ -612,7 +614,7 @@ function ShortcutsHelp({ saveLabel, onClose }: { saveLabel: string; onClose: () 
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-[11px] text-mist">左の経過は、ダブルクリックで訂正、右へドラッグでDo。処方の表は薬品名を2文字打つと候補が出ます。</p>
+      <p className="mt-3 text-[0.6875rem] text-mist">左の経過は、ダブルクリックで訂正、右へドラッグでDo。処方の表は薬品名を2文字打つと候補が出ます。</p>
     </Dialog>
   )
 }
@@ -695,15 +697,15 @@ function PatientTabs({ view, patients, currentId, closed, order, onReorder, onCl
 
   // ファストカルテの AppTabs と同じ：白い帯に並べ、開いているタブは下に藍の線
   const tab = (on: boolean) =>
-    `relative flex h-9 max-w-56 touch:h-11 shrink-0 items-center text-[12px] transition-colors ${
+    `relative flex h-9 max-w-56 touch:h-11 shrink-0 items-center text-[0.75rem] transition-colors ${
       on ? 'z-10 bg-cream font-semibold text-ink shadow-[inset_0_-2px_0_0_var(--color-clinical)]' : 'text-mist hover:bg-gold-soft'
     }`
   return (
     <div className="no-print flex shrink-0 items-stretch border-b border-line bg-ivory">
-    <div ref={listRef} role="tablist" className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
+    <div ref={listRef} role="tablist" className="no-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto">
       <button role="tab" aria-selected={home} onClick={goHome} className={`${tab(home)} gap-1.5 px-3`}>
         <Icon name={nav.icon} size={16} />
-        {nav.label} {view === 'reception' && <span className="font-num text-[11px] text-mist">{waiting.length}</span>}
+        {nav.label} {view === 'reception' && <span className="font-num text-[0.6875rem] text-mist">{waiting.length}</span>}
       </button>
       {open.map((p, i) => {
         const on = p.id === currentId
@@ -727,7 +729,7 @@ function PatientTabs({ view, patients, currentId, closed, order, onReorder, onCl
               title="ドラッグで並べ替え"
             >
               <span className="truncate">{p.name}</span>
-              <span className="text-[11px] font-normal whitespace-nowrap text-mist">{ageSex(p)}</span>
+              <span className="text-[0.6875rem] font-normal whitespace-nowrap text-mist">{ageSex(p)}</span>
               {p.status === '診察中' && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-clinical" />}
             </button>
             <button

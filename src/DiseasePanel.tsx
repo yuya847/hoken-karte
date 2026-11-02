@@ -67,7 +67,7 @@ function Row({ d, dispatch }: { d: Disease; dispatch: (a: Action) => void }) {
       </button>
       <span className="min-w-0 flex-1">
         <span className="block truncate">{diseaseLabel(d)}</span>
-        {d.auto && <span className="block truncate text-[11px] text-ink-2">自動：{d.auto}</span>}
+        {d.auto && <span className="block truncate text-[0.6875rem] text-ink-2">自動：{d.auto}</span>}
       </span>
       {!ended && (
         <button onClick={() => dispatch({ type: 'updateDisease', id: d.id, patch: { suspected: !d.suspected } })} className={`chip h-7 px-2 text-xs ${d.suspected ? 'chip-on' : ''}`}>

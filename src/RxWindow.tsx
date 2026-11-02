@@ -122,7 +122,7 @@ export function RxWindow({ patient, draft, dispatch, onClose }: { patient: Patie
                         {DRUG_CLASS[d.id]}・{doseText(d)} {usageLine(d)} {daysText(d) || d.site}
                       </span>
                     </span>
-                    {history.has(d.id) && <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[11px] text-ink-2">処方歴あり</span>}
+                    {history.has(d.id) && <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[0.6875rem] text-ink-2">処方歴あり</span>}
                   </button>
                 )
               })}

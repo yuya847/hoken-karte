@@ -25,7 +25,7 @@ function RailButton({ item, on, onSelect }: { item: Item; on: boolean; onSelect:
       onClick={() => onSelect(item.id)}
       title={item.hint ? `${item.label}（${item.hint}）` : item.label}
       aria-pressed={on}
-      className={`group flex w-full flex-col items-center gap-1 pt-1 pb-1.5 text-[11px] leading-tight ${on ? 'font-semibold text-ink' : 'font-medium text-mist'}`}
+      className={`group flex w-full flex-col items-center gap-1 pt-1 pb-1.5 text-[0.6875rem] leading-tight ${on ? 'font-semibold text-ink' : 'font-medium text-mist'}`}
     >
       <span className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${on ? 'bg-gold-soft' : 'group-hover:bg-ink/6'}`}>
         <Icon name={item.icon} fill={on} size={22} />
@@ -61,7 +61,7 @@ export function OrderBar({ active, onSelect }: { active: RailId | null; onSelect
           key={r.id}
           onClick={() => onSelect(r.id)}
           aria-pressed={active === r.id}
-          className={`flex h-16 min-w-[68px] flex-1 flex-col items-center justify-center gap-1 text-[11px] ${active === r.id ? 'font-semibold text-ink' : 'font-medium text-mist'}`}
+          className={`flex h-16 min-w-[4.25rem] flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] ${active === r.id ? 'font-semibold text-ink' : 'font-medium text-mist'}`}
         >
           <span className={`flex h-8 w-14 items-center justify-center rounded-full ${active === r.id ? 'bg-gold-soft' : ''}`}>
             <Icon name={r.icon} fill={active === r.id} size={22} />

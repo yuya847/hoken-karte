@@ -154,7 +154,7 @@ export function QualBadge({ patient, dispatch, compact }: { patient: Patient; di
         }}
         onKeyDown={(e) => e.key === 'Enter' && e.stopPropagation()}
         title={st === '要確認' ? `登録内容と違いがあります：${q?.diff?.join('、')}` : 'オンライン資格確認'}
-        className={`inline-flex shrink-0 items-center gap-1 rounded font-medium whitespace-nowrap hover:brightness-95 ${b.cls} ${compact ? 'h-6 px-1.5 text-[11px] touch:h-9' : 'h-6 px-2 text-xs'}`}
+        className={`inline-flex shrink-0 items-center gap-1 rounded font-medium whitespace-nowrap hover:brightness-95 ${b.cls} ${compact ? 'h-6 px-1.5 text-[0.6875rem] touch:h-9' : 'h-6 px-2 text-xs'}`}
       >
         <Icon name={b.icon} size={compact ? 14 : 15} fill={st !== '未確認'} />
         {compact && st === '確認済' ? `${shortMethod(q!.method)} ${time(q!.checkedAt)}` : label}
@@ -299,7 +299,7 @@ export function QualificationDialog({ patient, dispatch, onClose }: { patient: P
                 </>
               )}
             </button>
-            <p className="text-[11px] text-mist">試作のため、外部には問い合わせず架空の応答を表示します。</p>
+            <p className="text-[0.6875rem] text-mist">試作のため、外部には問い合わせず架空の応答を表示します。</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -324,7 +324,7 @@ export function QualificationDialog({ patient, dispatch, onClose }: { patient: P
                   <Icon name="warning" fill size={18} />
                   登録内容と違いがあります
                 </div>
-                <ul className="list-inside list-disc text-[13px]">
+                <ul className="list-inside list-disc text-[0.8125rem]">
                   {diff.map((d) => (
                     <li key={d} className="font-num">
                       {d}
@@ -384,7 +384,7 @@ export function QualificationDialog({ patient, dispatch, onClose }: { patient: P
 
             {r.consent.drugs && (
               <section>
-                <h3 className="mb-1.5 text-[13px] font-semibold">薬剤情報（他の医療機関・直近3か月）</h3>
+                <h3 className="mb-1.5 text-[0.8125rem] font-semibold">薬剤情報（他の医療機関・直近3か月）</h3>
                 {r.drugs.length === 0 ? (
                   <p className="text-xs text-mist">ありません</p>
                 ) : (
@@ -392,7 +392,7 @@ export function QualificationDialog({ patient, dispatch, onClose }: { patient: P
                     {r.drugs.map((d, i) => {
                       const hit = allergyHit(d.name)
                       return (
-                        <li key={i} className={`flex flex-wrap items-baseline gap-x-3 px-3 py-1.5 text-[13px] ${hit ? 'bg-error-ctr' : ''}`}>
+                        <li key={i} className={`flex flex-wrap items-baseline gap-x-3 px-3 py-1.5 text-[0.8125rem] ${hit ? 'bg-error-ctr' : ''}`}>
                           <span className="font-num w-20 shrink-0 text-xs text-mist">{d.date}</span>
                           <span className="min-w-0 flex-1">
                             <span className="font-medium">{d.name}</span>
@@ -412,7 +412,7 @@ export function QualificationDialog({ patient, dispatch, onClose }: { patient: P
 
             {r.consent.checkups && r.checkup && (
               <section>
-                <h3 className="mb-1.5 text-[13px] font-semibold">特定健診（{r.checkup.date}）</h3>
+                <h3 className="mb-1.5 text-[0.8125rem] font-semibold">特定健診（{r.checkup.date}）</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {r.checkup.items.map(([k, v]) => (
                     <span key={k} className="rounded-md bg-surface-1 px-2 py-1 text-xs">
@@ -425,7 +425,7 @@ export function QualificationDialog({ patient, dispatch, onClose }: { patient: P
                 </p>
               </section>
             )}
-            <p className="text-[11px] text-mist">表示している応答はすべて架空です。</p>
+            <p className="text-[0.6875rem] text-mist">表示している応答はすべて架空です。</p>
           </div>
         )}
       </div>
@@ -696,7 +696,7 @@ function NewPatientDialog({ onClose, onSave }: { onClose: () => void; onSave: (p
         </div>
 
         <section className="space-y-2.5">
-          <h3 className="border-b border-line pb-1 text-[13px] font-semibold">保険</h3>
+          <h3 className="border-b border-line pb-1 text-[0.8125rem] font-semibold">保険</h3>
           <div className="flex flex-wrap gap-1">
             {INSURANCE_TYPES.map((t) => (
               <button key={t} type="button" onClick={() => set({ type: t })} className={`chip h-8 ${f.type === t ? 'chip-on' : ''}`}>
@@ -728,9 +728,9 @@ function NewPatientDialog({ onClose, onSave }: { onClose: () => void; onSave: (p
               </button>
             ))}
             {f.burden === null ? (
-              <span className="text-[11px] text-mist">年齢から自動（仮：70歳以上は所得区分で変わります）</span>
+              <span className="text-[0.6875rem] text-mist">年齢から自動（仮：70歳以上は所得区分で変わります）</span>
             ) : (
-              <button type="button" onClick={() => set({ burden: null })} className="text-[11px] text-clinical hover:underline">
+              <button type="button" onClick={() => set({ burden: null })} className="text-[0.6875rem] text-clinical hover:underline">
                 年齢から自動に戻す
               </button>
             )}
@@ -738,7 +738,7 @@ function NewPatientDialog({ onClose, onSave }: { onClose: () => void; onSave: (p
         </section>
 
         <section className="space-y-2">
-          <h3 className="border-b border-line pb-1 text-[13px] font-semibold">アレルギー</h3>
+          <h3 className="border-b border-line pb-1 text-[0.8125rem] font-semibold">アレルギー</h3>
           <div className="flex items-center gap-2">
             <input value={f.allergies} onChange={(e) => set({ allergies: e.target.value })} placeholder="例：ペニシリン系（発疹）、卵　（なければ空欄）" className="field h-9 flex-1 px-2.5 text-sm" />
           </div>

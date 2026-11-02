@@ -113,8 +113,8 @@ function Form({ patient, doc, set }: DocProps) {
             return (
               <li key={q.key} className={`px-2.5 py-1.5 ${warn ? 'bg-[#fff8e6]' : ''}`}>
                 <div className="flex items-center gap-2">
-                  <span className="w-5 shrink-0 font-num text-[11px] text-mist">{i + 1}</span>
-                  <span className="min-w-0 flex-1 text-[12.5px]">{q.text}</span>
+                  <span className="w-5 shrink-0 font-num text-[0.6875rem] text-mist">{i + 1}</span>
+                  <span className="min-w-0 flex-1 text-[0.7812rem]">{q.text}</span>
                   {(['はい', 'いいえ'] as const).map((a) => (
                     <button key={a} type="button" onClick={() => set({ [q.key]: a })} className={`chip h-7 px-2.5 text-xs ${val === a ? 'chip-on' : ''}`}>
                       {a}
@@ -126,7 +126,7 @@ function Form({ patient, doc, set }: DocProps) {
                     value={str(f, `${q.key}note`)}
                     onChange={(e) => set({ [`${q.key}note`]: e.target.value })}
                     placeholder={q.key === 'q2' ? '病名' : '薬・食品の名前と症状'}
-                    className="field mt-1 ml-7 h-7 w-[calc(100%-1.75rem)] px-2 text-[12px]"
+                    className="field mt-1 ml-7 h-7 w-[calc(100%-1.75rem)] px-2 text-[0.75rem]"
                   />
                 )}
               </li>
@@ -155,7 +155,7 @@ function Form({ patient, doc, set }: DocProps) {
             <DateField label="接種日" value={str(f, 'date')} onChange={(x) => set({ date: x })} />
             <label className="block">
               <span className="mb-1 block text-xs text-mist">時刻</span>
-              <input type="time" value={str(f, 'time')} onChange={(e) => set({ time: e.target.value })} className="field h-8 w-full px-2 text-[13px]" />
+              <input type="time" value={str(f, 'time')} onChange={(e) => set({ time: e.target.value })} className="field h-8 w-full px-2 text-[0.8125rem]" />
             </label>
             <Text label="接種医" value={str(f, 'doctor')} onChange={(x) => set({ doctor: x })} />
           </div>

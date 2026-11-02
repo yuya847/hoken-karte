@@ -77,7 +77,7 @@ export function OrderSearch({ items, placeholder, onPick, inputRef, icon = 'sear
               className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm ${i === idx ? 'bg-gold-soft' : ''}`}
             >
               <Icon name={c.icon ?? 'add'} size={18} className={c.iconClass ?? 'text-ink-2'} />
-              {c.tag && <span className="w-9 shrink-0 rounded bg-cream text-center text-[11px] text-mist">{c.tag}</span>}
+              {c.tag && <span className="w-9 shrink-0 rounded bg-cream text-center text-[0.6875rem] text-mist">{c.tag}</span>}
               <span className="flex-1 truncate">{c.label}</span>
               {c.sub && <span className="truncate text-xs text-ink-2">{c.sub}</span>}
             </div>
