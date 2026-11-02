@@ -444,7 +444,7 @@ export default function App() {
                   }}
                 />
               </div>
-              <div className={`flex min-h-0 flex-1 gap-3 lg:flex-[1] ${phonePane === 'now' ? '' : 'max-md:hidden'}`}>
+              <div className={`flex min-h-0 min-w-0 flex-1 gap-3 lg:flex-[1] ${phonePane === 'now' ? '' : 'max-md:hidden'}`}>
                 <div className="card relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   {/* 保存の帯（ファストカルテの EntryPanel と同じ：左に「記載」、右に確定のボタン） */}
                   <div className="no-print flex shrink-0 items-center gap-2 border-b border-line px-3 py-1.5">

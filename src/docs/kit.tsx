@@ -1,4 +1,4 @@
-import { CLINIC, age } from '../data'
+import { CLINIC, age, today, ymd } from '../data'
 import { birthLabel } from '../PatientIcon'
 import type { DocFields, Patient } from '../types'
 
@@ -111,12 +111,54 @@ export function Boxes({ options, value }: { options: string[]; value: string | s
   )
 }
 
-// 令和の日付（2026-11-02 → 令和8年11月2日）
+// 和暦の日付。平成・昭和の発病日もあるので元号を見分ける（2019-05-10 → 令和元年5月10日）
 export const wareki = (d: string) => {
-  if (!d) return '令和　年　月　日'
+  if (!d) return '令和　　年　　月　　日'
   const [y, m, day] = d.split('-').map(Number)
-  return `令和${y - 2018}年${m}月${day}日`
+  const [era, base] = d >= '2019-05-01' ? ['令和', 2018] : d >= '1989-01-08' ? ['平成', 1988] : ['昭和', 1925]
+  const n = y - base
+  return `${era}${n === 1 ? '元' : n}年${m}月${day}日`
 }
+
+export const addDays = (d: string, n: number) => {
+  const t = new Date(`${d}T00:00:00`)
+  t.setDate(t.getDate() + n)
+  return ymd(t)
+}
+
+// 両端を含む日数（11/1〜11/7 → 7）
+export const daysBetween = (from: string, to: string) =>
+  from && to ? Math.round((new Date(`${to}T00:00:00`).getTime() - new Date(`${from}T00:00:00`).getTime()) / 86400000) + 1 : 0
+
+export const firstVisit = (p: Patient) => p.encounters.map((e) => e.date).sort()[0] ?? today()
+
+// 日付の入力（カレンダーから選べる）
+export function DateField({ label, value, onChange, from }: { label: string; value: string; onChange: (v: string) => void; from?: boolean }) {
+  return (
+    <label className="block">
+      <span className="mb-1 flex items-center gap-1.5 text-xs text-mist">
+        {label}
+        {from && <span className="rounded bg-[#e3ecfb] px-1 text-[10px] text-clinical">カルテから</span>}
+      </span>
+      <input type="date" value={value} onChange={(e) => onChange(e.target.value)} className="field h-8 w-full px-2.5 text-[13px]" />
+    </label>
+  )
+}
+
+// 文章のひな形の札。押すと本文の末尾に1文足す
+export function Templates({ items, onInsert }: { items: { label: string; text: string }[]; onInsert: (text: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((t) => (
+        <button key={t.label} type="button" onClick={() => onInsert(t.text)} title={t.text} className="chip h-7 text-xs">
+          ＋ {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export const appendLine = (cur: string, line: string) => (cur.trim() ? `${cur.replace(/\s+$/, '')}\n${line}` : line)
 
 // 紙の患者欄（氏名・生年月日・性別・年齢・住所）
 export function PatientLine({ patient }: { patient: Patient }) {
